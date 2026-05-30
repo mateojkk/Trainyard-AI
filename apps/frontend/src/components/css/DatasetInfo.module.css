@@ -3,13 +3,11 @@
   flex-direction: column;
   gap: 1.5rem;
 }
-
 @media (min-width: 1024px) {
   .container {
     grid-column: span 2 / span 2;
   }
 }
-
 .card {
   background-color: #111111;
   border: 1px solid #1a1a1a;
@@ -19,14 +17,12 @@
   flex-direction: column;
   gap: 1rem;
 }
-
 .meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
-
 .typeBadge {
   background-color: #1c1c1c;
   color: #9ca3af;
@@ -34,33 +30,26 @@
   border-radius: 0.25rem;
   border: 1px solid #2e2e2e;
   font-size: 0.75rem;
-  font-family: monospace;
 }
-
 .title {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #f3f4f6;
-  font-family: ui-sans-serif, system-ui, sans-serif;
   margin: 0;
   line-height: 1.25;
 }
-
 .desc {
   font-size: 0.875rem;
   color: #d1d5db;
   line-height: 1.625;
-  font-family: ui-sans-serif, system-ui, sans-serif;
   margin: 0;
 }
-
 .tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
   padding-top: 0.5rem;
 }
-
 .tag {
   font-size: 0.625rem;
   background-color: #1a1a1a;
@@ -69,14 +58,12 @@
   border-radius: 0.25rem;
   border: 1px solid #2e2e2e;
 }
-
 .previewCard {
   background-color: #111111;
   border: 1px solid #1a1a1a;
   border-radius: 0.5rem;
   overflow: hidden;
 }
-
 .previewHeader {
   border-bottom: 1px solid #1a1a1a;
   padding: 1rem;
@@ -85,10 +72,9 @@
   justify-content: space-between;
   align-items: center;
 }
-
 .previewTitle {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #d1d5db;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -96,18 +82,14 @@
   align-items: center;
   gap: 0.5rem;
 }
-
 .previewSub {
   font-size: 0.625rem;
   color: #6b7280;
-  font-family: monospace;
 }
-
 .previewBody {
   padding: 1rem;
   background-color: #080808;
 }
-
 .loadingText {
   display: flex;
   align-items: center;
@@ -115,13 +97,10 @@
   padding: 2rem 0;
   font-size: 0.75rem;
   color: #6b7280;
-  font-family: monospace;
 }
-
 .previewCode {
   font-size: 0.75rem;
-  font-family: monospace;
-  color: #10b981;
+  color: #93c5fd;
   overflow-x: auto;
   white-space: pre;
   padding: 0.75rem;
@@ -132,7 +111,6 @@
   line-height: 1.625;
   margin: 0;
 }
-
 .shieldCard {
   background-color: #111111;
   border: 1px solid #1a1a1a;
@@ -142,35 +120,31 @@
   align-items: start;
   gap: 0.75rem;
 }
-
 .shieldIcon {
   width: 1.25rem;
   height: 1.25rem;
-  color: #f59e0b;
+  color: #38bdf8;
   margin-top: 0.125rem;
   flex-shrink: 0;
 }
-
 .shieldTitle {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #d1d5db;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0;
 }
-
 .shieldDesc {
   font-size: 0.6875rem;
   color: #6b7280;
   line-height: 1.5;
   margin: 0.25rem 0 0 0;
 }
-
-.badge { font-size: 0.625rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 0.25rem; border: 1px solid transparent; letter-spacing: 0.05em; text-transform: uppercase; }
+.badge { font-size: 0.625rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 0.25rem; border: 1px solid transparent; letter-spacing: 0.05em; text-transform: uppercase; }
 .nlp { background-color: rgba(30, 58, 138, 0.3); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2); }
-.vision { background-color: rgba(88, 28, 135, 0.3); color: #c084fc; border-color: rgba(168, 85, 247, 0.2); }
-.audio { background-color: rgba(131, 24, 67, 0.3); color: #f472b6; border-color: rgba(236, 72, 153, 0.2); }
-.tabular { background-color: rgba(6, 78, 59, 0.3); color: #34d399; border-color: rgba(16, 185, 129, 0.2); }
-.multimodal { background-color: rgba(120, 53, 4, 0.3); color: #fbbf24; border-color: rgba(245, 158, 11, 0.2); }
+.vision { background-color: rgba(30, 64, 175, 0.2); color: #93c5fd; border-color: rgba(147, 197, 253, 0.22); }
+.audio { background-color: rgba(15, 23, 42, 0.8); color: #dbeafe; border-color: rgba(219, 234, 254, 0.2); }
+.tabular { background-color: rgba(8, 47, 73, 0.45); color: #bae6fd; border-color: rgba(186, 230, 253, 0.22); }
+.multimodal { background-color: rgba(30, 64, 175, 0.24); color: #bfdbfe; border-color: rgba(56, 189, 248, 0.24); }
 .otherCategory { background-color: rgba(31, 41, 55, 0.3); color: #9ca3af; border-color: rgba(107, 114, 128, 0.2); }

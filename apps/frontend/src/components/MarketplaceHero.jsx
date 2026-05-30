@@ -1,21 +1,28 @@
 import { Link } from "react-router-dom";
-import { Database } from "lucide-react";
 import styles from "./css/MarketplaceHero.module.css";
 
-export default function MarketplaceHero() {
+export default function MarketplaceHero({ account, onLogin }) {
   return (
     <div className={styles.hero}>
-      <h1 className={styles.title}>
-        <Database className={styles.icon} />
-        Trainyard <span className={styles.highlight}>AI</span>
-      </h1>
-      <p className={styles.desc}>
-        The decentralized marketplace for AI training data. End-to-end client-side encryption, permanent hosting on Walrus mainnet, and trustless SUI-settled key delivery.
-      </p>
-      <div className={styles.action}>
-        <Link to="/upload" className={styles.button}>
-          Sell Your Dataset
-        </Link>
+      <div className={styles.overlay}></div>
+      <div className={styles.content}>
+        <h1 className={styles.title}>
+          Trainyard <span className={styles.highlight}>AI</span>
+        </h1>
+        <p className={styles.desc}>
+          The decentralized marketplace for AI training data. Secure client-side encryption, permanent Walrus hosting, and trustless automated key delivery on the Sui Network.
+        </p>
+        <div className={styles.action}>
+          {account ? (
+            <Link to="/upload" className={styles.button}>
+              Sell Your Dataset
+            </Link>
+          ) : (
+            <button onClick={onLogin} className={styles.button}>
+              Connect via zkLogin
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

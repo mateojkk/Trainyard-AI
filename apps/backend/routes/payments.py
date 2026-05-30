@@ -16,7 +16,7 @@ class VerifyPaymentRequest(BaseModel):
 @router.post("/verify")
 async def verify_payment(payload: VerifyPaymentRequest):
     """
-    Verifies a Sui mainnet payment transaction.
+    Verifies a Sui mainnet USDC payment transaction.
     If valid, increments the purchase count and returns the decryption key.
     """
     client = get_db()
@@ -30,7 +30,7 @@ async def verify_payment(payload: VerifyPaymentRequest):
             raise HTTPException(status_code=404, detail="Dataset listing not found")
         dataset = response.data[0]
 
-        # 2. Verify payment on SUI network
+        # 2. Verify USDC payment on Sui network
         is_verified = await sui_service.verify_payment(payload.tx_digest, dataset["price_sui"])
         if not is_verified:
             logger.warning(f"Payment verification failed for transaction digest: {payload.tx_digest}")

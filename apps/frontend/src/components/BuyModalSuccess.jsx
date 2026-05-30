@@ -3,7 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 export default function BuyModalSuccess({ decryptionKey, onClose }) {
   return (
     <div className="text-center py-6 space-y-6">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-950/30 border border-emerald-500/20 text-emerald-400">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-950/30 border border-blue-300/20 text-blue-200">
         <CheckCircle2 className="w-8 h-8 animate-pulse" />
       </div>
       <div>
@@ -15,7 +15,7 @@ export default function BuyModalSuccess({ decryptionKey, onClose }) {
 
       <div className="bg-[#0c0c0c] border border-[#1a1a1a] p-3 rounded text-left">
         <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono block">Released Decryption Key</span>
-        <code className="text-xs text-[#f59e0b] font-mono select-all break-all block mt-1">
+        <code className="text-xs text-[#38bdf8] font-mono select-all break-all block mt-1">
           {decryptionKey}
         </code>
       </div>

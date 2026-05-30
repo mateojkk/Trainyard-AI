@@ -51,7 +51,7 @@ export default function Dataset() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-xs text-gray-500 font-mono">
-        <Loader2 className="w-6 h-6 text-brand-amber animate-spin" />
+        <Loader2 className="w-6 h-6 text-brand-blue animate-spin" />
         Synchronizing storage record...
       </div>
     );
@@ -67,7 +67,7 @@ export default function Dataset() {
             <p className="mt-1">{error || "Dataset listing could not be found."}</p>
           </div>
         </div>
-        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-brand-amber hover:underline">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-brand-blue hover:underline">
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Marketplace
         </Link>
@@ -77,7 +77,7 @@ export default function Dataset() {
 
   return (
     <div className="space-y-6">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-amber transition duration-150">
+      <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-blue transition duration-150">
         <ArrowLeft className="w-3.5 h-3.5" />
         Back to Marketplace
       </Link>

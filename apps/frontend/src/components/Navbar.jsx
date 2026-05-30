@@ -1,9 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import WalletButton from "./WalletButton";
+import { useZkLogin } from "../context/ZkLoginContext";
 import { Database, UploadCloud } from "lucide-react";
 import styles from "./css/Navbar.module.css";
 
 export default function Navbar() {
+  const { account } = useZkLogin();
   const location = useLocation();
 
   const isActive = (path) => {
@@ -21,21 +23,23 @@ export default function Navbar() {
       </Link>
 
       {/* Navigation links */}
-      <div className={styles.links}>
-        <Link
-          to="/"
-          className={`${styles.link} ${isActive("/") ? styles.active : styles.inactive}`}
-        >
-          Browse
-        </Link>
-        <Link
-          to="/upload"
-          className={`${styles.link} ${isActive("/upload") ? styles.active : styles.inactive}`}
-        >
-          <UploadCloud className={styles.linkIcon} />
-          Upload
-        </Link>
-      </div>
+      {account && (
+        <div className={styles.links}>
+          <Link
+            to="/"
+            className={`${styles.link} ${isActive("/") ? styles.active : styles.inactive}`}
+          >
+            Browse
+          </Link>
+          <Link
+            to="/upload"
+            className={`${styles.link} ${isActive("/upload") ? styles.active : styles.inactive}`}
+          >
+            <UploadCloud className={styles.linkIcon} />
+            Upload
+          </Link>
+        </div>
+      )}
 
       {/* Wallet Connect Button */}
       <div>

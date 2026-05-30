@@ -16,7 +16,7 @@ export default function StepChooseFile({
       <div className="text-center">
         <h2 className="text-lg font-bold text-gray-100 uppercase tracking-wider">Contribute Labeled Training Data</h2>
         <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-          List your ML datasets permanently on Walrus. Get paid directly in SUI.
+          List your ML datasets permanently on Walrus. Get paid directly in USDC on Sui.
         </p>
       </div>
 
@@ -24,7 +24,7 @@ export default function StepChooseFile({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={triggerFileSelect}
-        className="border border-dashed border-[#2e2e2e] hover:border-brand-amber rounded-lg bg-[#0d0d0d] hover:bg-[#111111] p-10 text-center cursor-pointer transition-all duration-200 group"
+        className="border border-dashed border-[#2e2e2e] hover:border-brand-blue rounded-lg bg-[#0d0d0d] hover:bg-[#111111] p-10 text-center cursor-pointer transition-all duration-200 group"
       >
         <input
           type="file"
@@ -33,7 +33,7 @@ export default function StepChooseFile({
           className="hidden"
         />
         
-        <UploadCloud className="w-10 h-10 text-gray-500 group-hover:text-brand-amber mx-auto mb-3 transition duration-200" />
+        <UploadCloud className="w-10 h-10 text-gray-500 group-hover:text-brand-blue mx-auto mb-3 transition duration-200" />
         <span className="text-sm font-bold text-gray-300 block">Drag & drop dataset file here</span>
         <span className="text-xs text-gray-600 block mt-1">or click to browse local files</span>
         <span className="text-[10px] text-gray-500 block mt-4 font-mono">
@@ -44,7 +44,7 @@ export default function StepChooseFile({
       {file && (
         <div className="bg-[#111111] border border-[#1a1a1a] p-4 rounded flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <File className="w-5 h-5 text-brand-amber" />
+            <File className="w-5 h-5 text-brand-blue" />
             <div>
               <span className="text-xs font-bold text-gray-200 block truncate max-w-[280px]" title={file.name}>
                 {file.name}
@@ -57,7 +57,7 @@ export default function StepChooseFile({
           
           <button
             onClick={handleContinueToForm}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber hover:bg-amber-600 text-black font-semibold rounded text-xs transition duration-150 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue hover:bg-blue-400 text-black font-semibold rounded text-xs transition duration-150 cursor-pointer"
           >
             Continue
             <ArrowRight className="w-3.5 h-3.5" />

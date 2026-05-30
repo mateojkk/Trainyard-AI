@@ -12,16 +12,18 @@ logger = logging.getLogger("sui_service")
 TATUM_API_KEY = os.getenv("TATUM_API_KEY", "")
 PLATFORM_WALLET_ADDRESS = os.getenv("PLATFORM_WALLET_ADDRESS", "0x83e20df3bd995c697843818e6c7104b2b2b1735166b553e192f153a5c363980a")
 SUI_MAINNET_RPC = os.getenv("SUI_MAINNET_RPC", "https://api.tatum.io/v3/sui/node")
+USDC_COIN_TYPE = os.getenv("USDC_COIN_TYPE", "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC")
+USDC_DECIMALS = int(os.getenv("USDC_DECIMALS", "6"))
 
 # Public fallback RPC to use if Tatum is not configured or fails
 PUBLIC_SUI_RPC = "https://fullnode.mainnet.sui.io:443"
 
-async def verify_payment(tx_digest: str, expected_price_sui: float) -> bool:
+async def verify_payment(tx_digest: str, expected_price_usdc: float) -> bool:
     """
     Verifies a Sui mainnet transaction:
     1. Check if the tx was successful.
-    2. Check if SUI was transferred to the PLATFORM_WALLET_ADDRESS.
-    3. Check if the transferred amount is >= expected_price_sui (converted to MIST).
+    2. Check if USDC was transferred to the PLATFORM_WALLET_ADDRESS.
+    3. Check if the transferred amount is >= expected_price_usdc.
     
     Supports mock transaction digests starting with 'mock-' for development/testing.
     """
@@ -31,8 +33,8 @@ async def verify_payment(tx_digest: str, expected_price_sui: float) -> bool:
         # In mock mode, we assume the payment is valid
         return True
 
-    expected_mist = int(expected_price_sui * 1_000_000_000)
-    logger.info(f"Verifying transaction {tx_digest}. Expecting {expected_mist} MIST at platform address {PLATFORM_WALLET_ADDRESS}")
+    expected_units = int(expected_price_usdc * (10 ** USDC_DECIMALS))
+    logger.info(f"Verifying {tx_digest}. Expecting {expected_units} USDC units at {PLATFORM_WALLET_ADDRESS}")
 
     # Prepare standard JSON-RPC payload for sui_getTransactionBlock
     payload = {
@@ -102,25 +104,25 @@ async def verify_payment(tx_digest: str, expected_price_sui: float) -> bool:
                 address_owner = owner.get("AddressOwner", "")
                 coin_type = change.get("coinType", "")
                 
-                # Check if this change belongs to the platform wallet and is SUI
-                if address_owner.lower().strip() == normalized_platform_address and coin_type == "0x2::sui::SUI":
-                    amount_mist = int(change.get("amount", "0"))
-                    if amount_mist > 0:
-                        platform_received += amount_mist
+                is_platform_owner = address_owner.lower().strip() == normalized_platform_address
+                if is_platform_owner and coin_type == USDC_COIN_TYPE:
+                    amount_units = int(change.get("amount", "0"))
+                    if amount_units > 0:
+                        platform_received += amount_units
             
-            logger.info(f"Platform received total SUI (MIST): {platform_received}")
+            logger.info(f"Platform received total USDC units: {platform_received}")
             
             # Ensure the platform received at least the expected amount
             # Allow minor rounding error leeway (e.g. 99% of expected)
-            if platform_received >= expected_mist:
-                logger.info(f"Transaction verified successfully! Platform received {platform_received} MIST.")
+            if platform_received >= expected_units:
+                logger.info(f"Transaction verified successfully: {platform_received} USDC units.")
                 return True
             else:
-                logger.error(f"Platform received {platform_received} MIST, but expected {expected_mist} MIST.")
+                logger.error(f"Platform received {platform_received}, expected {expected_units}.")
                 return False
                 
         except Exception as e:
-            logger.error(f"Error verifying SUI transaction: {str(e)}")
+            logger.error(f"Error verifying USDC transaction: {str(e)}")
             return False
 
 if __name__ == "__main__":

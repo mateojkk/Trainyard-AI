@@ -45,7 +45,7 @@ export default function DatasetInfo({ dataset, previewText, loadingPreview }) {
       <div className={styles.previewCard}>
         <div className={styles.previewHeader}>
           <span className={styles.previewTitle}>
-            <Eye className="w-4 h-4 text-brand-amber" />
+            <Eye className="w-4 h-4 text-brand-blue" />
             Plaintext Dataset Preview
           </span>
           <span className={styles.previewSub}>Hosted publicly on Walrus</span>
@@ -54,7 +54,7 @@ export default function DatasetInfo({ dataset, previewText, loadingPreview }) {
         <div className={styles.previewBody}>
           {loadingPreview ? (
             <div className={styles.loadingText}>
-              <Loader2 className="w-3.5 h-3.5 text-brand-amber animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-brand-blue animate-spin" />
               Fetching preview bytes...
             </div>
           ) : (
@@ -70,7 +70,7 @@ export default function DatasetInfo({ dataset, previewText, loadingPreview }) {
         <div>
           <h4 className={styles.shieldTitle}>Secure Cryptographic Storage</h4>
           <p className={styles.shieldDesc}>
-            This dataset has been encrypted client-side in the contributor's browser with AES-256-GCM. The unencrypted file is never transmitted to the platform servers. The ciphertext is stored permanently on Walrus. The decryption key is automatically released to your browser upon SUI transaction confirmation.
+            This dataset has been encrypted client-side in the contributor's browser with AES-256-GCM. The unencrypted file is never transmitted to the platform servers. The ciphertext is stored permanently on Walrus. The decryption key is automatically released after verified USDC settlement on Sui.
           </p>
         </div>
       </div>

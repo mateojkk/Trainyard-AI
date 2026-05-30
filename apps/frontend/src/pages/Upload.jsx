@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useZkLogin } from "../context/ZkLoginContext";
 import { datasetsApi, aiApi } from "../lib/api";
 import { generateKey, encryptFile } from "../lib/crypto";
 import StepChooseFile from "../components/upload/StepChooseFile";
@@ -10,7 +10,7 @@ import StepSuccess from "../components/upload/StepSuccess";
 import { ChevronRight } from "lucide-react";
 
 export default function Upload() {
-  const account = useCurrentAccount();
+  const { account } = useZkLogin();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -23,7 +23,7 @@ export default function Upload() {
     { id: 0, label: "Encrypting dataset locally", status: "idle" },
     { id: 1, label: "Uploading encrypted data to Walrus", status: "idle" },
     { id: 2, label: "Uploading preview index to Walrus", status: "idle" },
-    { id: 3, label: "Registering listing on Sui marketplace", status: "idle" },
+    { id: 3, label: "Registering listing metadata", status: "idle" },
   ]);
 
   const [error, setError] = useState(null);
@@ -67,7 +67,7 @@ export default function Upload() {
   };
 
   const handleUploadAndStore = async () => {
-    if (!account) return setError("Please connect your wallet in the navigation bar to proceed.");
+    if (!account) return setError("Please sign in with zkLogin to proceed.");
     setError(null);
     setStep(2);
 
@@ -133,11 +133,11 @@ export default function Upload() {
     <div className="max-w-xl mx-auto">
       {step < 3 && (
         <div className="flex justify-between items-center mb-8 bg-[#0d0d0d] p-3 border border-[#1a1a1a] rounded text-xs font-mono text-gray-500">
-          <span className={step === 0 ? "text-brand-amber font-bold" : "text-gray-400"}>01. Choose File</span>
+          <span className={step === 0 ? "text-brand-blue font-bold" : "text-gray-400"}>01. Choose File</span>
           <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
-          <span className={step === 1 ? "text-brand-amber font-bold" : "text-gray-400"}>02. Configure Metadata</span>
+          <span className={step === 1 ? "text-brand-blue font-bold" : "text-gray-400"}>02. Configure Metadata</span>
           <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
-          <span className={step === 2 ? "text-brand-amber font-bold" : "text-gray-400"}>03. Encrypt & Upload</span>
+          <span className={step === 2 ? "text-brand-blue font-bold" : "text-gray-400"}>03. Encrypt & Upload</span>
         </div>
       )}
       {step === 0 && <StepChooseFile file={file} error={error} handleDragOver={(e) => e.preventDefault()} handleDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]); }} triggerFileSelect={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={(e) => { if (e.target.files?.[0]) processFile(e.target.files[0]); }} handleContinueToForm={handleContinueToForm} />}

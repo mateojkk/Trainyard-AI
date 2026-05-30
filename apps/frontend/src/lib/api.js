@@ -1,6 +1,10 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "/api";
+const configuredApiUrl = import.meta.env.VITE_API_URL;
+const API_URL =
+  import.meta.env.PROD && configuredApiUrl?.includes("localhost")
+    ? "/api"
+    : configuredApiUrl || "/api";
 
 const API = axios.create({
   baseURL: API_URL,
@@ -77,7 +81,7 @@ export const datasetsApi = {
 
 export const paymentsApi = {
   /**
-   * Verifies the SUI transaction digest and retrieves the dataset decryption key.
+   * Verifies the Sui USDC transaction digest and retrieves the dataset decryption key.
    */
   verify: async (datasetId, buyerAddress, txDigest, blobId) => {
     const response = await API.post("/payments/verify", {

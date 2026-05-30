@@ -1,5 +1,6 @@
 import { FileSpreadsheet, Lock, ArrowUpRight, Database, Download } from "lucide-react";
 import { formatBytes } from "../lib/sui";
+import { PAYMENT_SYMBOL, formatPaymentAmount } from "../lib/payments";
 import styles from "./css/DatasetStats.module.css";
 
 export default function DatasetStats({ dataset, onBuyClick }) {
@@ -9,8 +10,8 @@ export default function DatasetStats({ dataset, onBuyClick }) {
         <div className={styles.hero}>
           <span className={styles.licenseLabel}>Dataset Access License</span>
           <div className={styles.price}>
-            {dataset.price_sui.toFixed(2)}
-            <span className={styles.priceLabel}>SUI</span>
+            {formatPaymentAmount(dataset.price_sui)}
+            <span className={styles.priceLabel}>{PAYMENT_SYMBOL}</span>
           </div>
           <button onClick={onBuyClick} className={styles.buyBtn}>
             <Lock className="w-4 h-4" />
@@ -22,7 +23,7 @@ export default function DatasetStats({ dataset, onBuyClick }) {
           <div className={styles.detailRow}>
             <span className={styles.label}>File Format</span>
             <span className={styles.value}>
-              <FileSpreadsheet className="w-3.5 h-3.5 text-brand-amber" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-brand-blue" />
               {dataset.file_type}
             </span>
           </div>
@@ -41,7 +42,7 @@ export default function DatasetStats({ dataset, onBuyClick }) {
           </div>
 
           <div className={styles.detailSection}>
-            <span className={styles.sectionLabel}>Contributor SUI Address</span>
+            <span className={styles.sectionLabel}>Contributor zkLogin Address</span>
             <span className={styles.sectionVal} title={dataset.seller_address}>
               {dataset.seller_address}
             </span>
@@ -51,7 +52,7 @@ export default function DatasetStats({ dataset, onBuyClick }) {
 
       <div className={styles.walrusCard}>
         <h4 className={styles.walrusTitle}>
-          <Database className="w-4 h-4 text-brand-amber" />
+          <Database className="w-4 h-4 text-brand-blue" />
           Walrus Integration
         </h4>
         <div className="space-y-2 text-xs">

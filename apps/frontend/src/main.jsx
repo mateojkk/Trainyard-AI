@@ -1,8 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { createNetworkConfig, SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
+import { createNetworkConfig, SuiClientProvider } from "@mysten/dapp-kit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ZkLoginProvider } from "./context/ZkLoginContext.jsx";
 import App from "./App.jsx";
 import "./index.css";
 import "@mysten/dapp-kit/dist/index.css";
@@ -20,11 +21,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
-        <WalletProvider autoConnect>
+        <ZkLoginProvider>
           <BrowserRouter>
             <App />
           </BrowserRouter>
-        </WalletProvider>
+        </ZkLoginProvider>
       </SuiClientProvider>
     </QueryClientProvider>
   </React.StrictMode>

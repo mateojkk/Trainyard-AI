@@ -9,7 +9,7 @@ export default function StepSuccess({
 }) {
   return (
     <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6 space-y-6 text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-950/30 border border-emerald-500/20 text-emerald-400">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-950/30 border border-blue-300/20 text-blue-200">
         <ShieldCheck className="w-8 h-8 animate-pulse" />
       </div>
 
@@ -24,7 +24,7 @@ export default function StepSuccess({
         <div className="space-y-1">
           <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono flex items-center justify-between">
             <span>Encrypted Walrus Blob ID</span>
-            <span className="text-[9px] text-emerald-500">Permanent</span>
+            <span className="text-[9px] text-blue-300">Permanent</span>
           </span>
           <div className="flex gap-2">
             <input
@@ -40,15 +40,15 @@ export default function StepSuccess({
               <Copy className="w-3.5 h-3.5" />
             </button>
           </div>
-          {copiedBlob && <span className="text-[9px] text-emerald-500 block font-mono">Copied Blob ID!</span>}
+          {copiedBlob && <span className="text-[9px] text-blue-300 block font-mono">Copied Blob ID!</span>}
         </div>
 
-        <div className="space-y-1 bg-amber-950/10 border border-brand-amber/10 p-3.5 rounded">
-          <span className="text-[10px] text-brand-amber uppercase tracking-widest font-bold font-mono block">
+        <div className="space-y-1 bg-blue-950/10 border border-brand-blue/10 p-3.5 rounded">
+          <span className="text-[10px] text-brand-blue uppercase tracking-widest font-bold font-mono block">
             Decryption Key (Save this!)
           </span>
           <p className="text-[10px] text-gray-500 leading-normal">
-            This key is stored on our secure API nodes and will only be released to buyers who send SUI to your wallet. Keep a copy in your records.
+            This key is stored on our secure API nodes and will only be released after verified USDC payment on Sui. Keep a copy in your records.
           </p>
           
           <div className="flex gap-2 mt-2">
@@ -56,16 +56,16 @@ export default function StepSuccess({
               type="text"
               readOnly
               value={result.key_base64}
-              className="flex-grow bg-[#0c0c0c] border border-brand-amber/20 rounded p-2 text-xs font-mono text-brand-amber focus:outline-none"
+              className="flex-grow bg-[#0c0c0c] border border-brand-blue/20 rounded p-2 text-xs font-mono text-brand-blue focus:outline-none"
             />
             <button
               onClick={() => handleCopy(result.key_base64, "key")}
-              className="px-3 bg-brand-amber/10 border border-brand-amber/20 hover:bg-brand-amber/20 rounded text-brand-amber transition cursor-pointer"
+              className="px-3 bg-brand-blue/10 border border-brand-blue/20 hover:bg-brand-blue/20 rounded text-brand-blue transition cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
           </div>
-          {copiedKey && <span className="text-[9px] text-brand-amber block font-mono mt-1">Copied Decryption Key!</span>}
+          {copiedKey && <span className="text-[9px] text-brand-blue block font-mono mt-1">Copied Decryption Key!</span>}
         </div>
 
         <div className="flex justify-between items-center text-xs">
@@ -74,7 +74,7 @@ export default function StepSuccess({
             href={result.walrus_explorer_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand-amber hover:underline flex items-center gap-1 font-mono text-[11px]"
+            className="text-brand-blue hover:underline flex items-center gap-1 font-mono text-[11px]"
           >
             View Blob
             <ExternalLink className="w-3 h-3" />
@@ -84,7 +84,7 @@ export default function StepSuccess({
 
       <button
         onClick={() => navigate(`/dataset/${result.id}`)}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-[#f59e0b] hover:bg-[#d97706] text-black font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 py-3 bg-[#38bdf8] hover:bg-[#7dd3fc] text-black font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer"
       >
         View in Marketplace
         <ArrowRight className="w-4 h-4" />

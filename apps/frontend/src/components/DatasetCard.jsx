@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { FileCode, Download } from "lucide-react";
 import { truncateAddress, formatBytes } from "../lib/sui";
+import { PAYMENT_SYMBOL, formatPaymentAmount } from "../lib/payments";
 import styles from "./css/DatasetCard.module.css";
 
 const CATEGORY_MAP = {
@@ -67,8 +68,8 @@ export default function DatasetCard({ dataset }) {
         <div className={styles.footerRight}>
           <div className={styles.priceLabel}>Price</div>
           <div className={styles.price}>
-            <span>{dataset.price_sui}</span>
-            <span className={styles.suiLabel}>SUI</span>
+            <span>{formatPaymentAmount(dataset.price_sui)}</span>
+            <span className={styles.suiLabel}>{PAYMENT_SYMBOL}</span>
           </div>
         </div>
       </div>

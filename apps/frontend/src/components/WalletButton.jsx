@@ -1,54 +1,29 @@
 import { useState } from "react";
-import { ConnectModal, useCurrentAccount, useDisconnectWallet, useSuiClientQuery } from "@mysten/dapp-kit";
+import { useZkLogin } from "../context/ZkLoginContext";
 import { truncateAddress } from "../lib/sui";
-import { Wallet, LogOut, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown, KeyRound } from "lucide-react";
 
 export default function WalletButton() {
-  const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const account = useCurrentAccount();
-  const { mutate: disconnect } = useDisconnectWallet();
-
-  // Fetch coin balance of SUI
-  const { data: coinBalance } = useSuiClientQuery(
-    "getCoinBalance",
-    {
-      owner: account?.address || "",
-      coinType: "0x2::sui::SUI",
-    },
-    {
-      enabled: !!account?.address,
-    }
-  );
+  const { account, error, login, logout } = useZkLogin();
 
   const handleDisconnect = () => {
-    disconnect();
+    logout();
     setShowDropdown(false);
-  };
-
-  const getBalanceDisplay = () => {
-    if (!coinBalance) return "0.00 SUI";
-    const balanceNum = Number(coinBalance.totalBalance) / 1_000_000_000;
-    return `${balanceNum.toFixed(2)} SUI`;
   };
 
   if (!account) {
     return (
-      <>
+      <div className="relative">
         <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-1.5 bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold rounded-md border border-transparent shadow transition duration-200 cursor-pointer text-sm"
+          onClick={login}
+          className="flex items-center gap-2 px-4 py-1.5 bg-[#38bdf8] hover:bg-[#7dd3fc] text-black font-semibold rounded-md border border-transparent shadow transition duration-200 cursor-pointer text-sm"
         >
-          <Wallet className="w-4 h-4" />
-          Connect Wallet
+          <KeyRound className="w-4 h-4" />
+          Login
         </button>
-
-        <ConnectModal
-          trigger={null}
-          open={showModal}
-          onOpenChange={(open) => setShowModal(open)}
-        />
-      </>
+        {error && <div className="absolute right-0 mt-2 w-64 text-[10px] text-red-300 bg-red-950/30 border border-red-900/40 rounded p-2">{error}</div>}
+      </div>
     );
   }
 
@@ -56,12 +31,12 @@ export default function WalletButton() {
     <div className="relative">
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-[#141414] hover:bg-[#1c1c1c] text-gray-200 rounded-md border border-[#2e2e2e] shadow hover:border-brand-amber transition duration-200 cursor-pointer text-sm font-medium"
+        className="flex items-center gap-2 px-3 py-1.5 bg-[#141414] hover:bg-[#1c1c1c] text-gray-200 rounded-md border border-[#2e2e2e] shadow hover:border-brand-blue transition duration-200 cursor-pointer text-sm font-medium"
       >
-        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span className="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
         <span className="font-mono text-xs">{truncateAddress(account.address)}</span>
         <span className="text-gray-400">|</span>
-        <span className="text-brand-amber font-mono text-xs">{getBalanceDisplay()}</span>
+        <span className="text-brand-blue font-mono text-xs">zkLogin</span>
         <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
       </button>
 

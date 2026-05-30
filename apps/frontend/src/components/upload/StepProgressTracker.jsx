@@ -5,7 +5,7 @@ export default function StepProgressTracker({ uploadSteps }) {
     <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6 space-y-6">
       <div className="text-center space-y-1">
         <h3 className="text-sm font-bold text-gray-200 uppercase tracking-wider flex items-center justify-center gap-2">
-          <Loader2 className="w-4 h-4 text-brand-amber animate-spin" />
+          <Loader2 className="w-4 h-4 text-brand-blue animate-spin" />
           Processing Decrypted Pipeline
         </h3>
         <p className="text-xs text-gray-500 leading-normal max-w-xs mx-auto">
@@ -19,9 +19,9 @@ export default function StepProgressTracker({ uploadSteps }) {
             key={s.id}
             className={`p-3.5 border rounded flex items-center justify-between text-xs transition duration-200 ${
               s.status === "done"
-                ? "bg-emerald-950/10 border-emerald-500/25 text-emerald-400"
+                ? "bg-blue-950/20 border-blue-300/25 text-blue-200"
                 : s.status === "loading"
-                ? "bg-brand-amber/5 border-brand-amber/30 text-gray-200 font-bold"
+                ? "bg-brand-blue/5 border-brand-blue/30 text-gray-200 font-bold"
                 : "bg-[#0c0c0c] border-[#1c1c1c] text-gray-500"
             }`}
           >
@@ -30,8 +30,8 @@ export default function StepProgressTracker({ uploadSteps }) {
               <span>{s.label}</span>
             </div>
             <div>
-              {s.status === "done" && <CheckCircle2 className="w-4 h-4 text-emerald-500 animate-bounce" />}
-              {s.status === "loading" && <Loader2 className="w-4 h-4 text-brand-amber animate-spin" />}
+              {s.status === "done" && <CheckCircle2 className="w-4 h-4 text-blue-300 animate-bounce" />}
+              {s.status === "loading" && <Loader2 className="w-4 h-4 text-brand-blue animate-spin" />}
               {s.status === "idle" && <span className="font-mono text-[9px] uppercase tracking-wider text-gray-600">Waiting</span>}
             </div>
           </div>
