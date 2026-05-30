@@ -1,0 +1,29 @@
+demo_script.md
+trainyard prompt.md
+rules.md
+.directory
+
+# Dependencies
+node_modules/
+apps/frontend/node_modules/
+
+# Build output
+dist/
+apps/frontend/dist/
+
+# Environment files
+.env
+.env.local
+apps/frontend/.env
+apps/backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+apps/backend/.venv/
+
+# Vercel
+.vercel/
+.codex
+.agents
