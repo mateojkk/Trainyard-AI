@@ -22,7 +22,7 @@ Backend
 
 ---
 
-## Monorepo Layout
+ **Monorepo Layout**
 
 ```text
 .
@@ -35,4 +35,4 @@ Backend
 └── vercel.json          # Vercel build and routing config
 ```
 
-# Trainyard-AI
+@2026 Trainyard-AI
