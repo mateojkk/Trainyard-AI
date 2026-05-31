@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useZkLogin } from "../context/ZkLoginContext";
+import { useZkLogin } from "../context/useZkLogin";
 import { truncateAddress } from "../lib/sui";
 import { LogOut, ChevronDown, KeyRound } from "lucide-react";
 
@@ -17,7 +17,7 @@ export default function WalletButton() {
       <div className="relative">
         <button
           onClick={login}
-          className="flex items-center gap-2 px-4 py-1.5 bg-[#38bdf8] hover:bg-[#7dd3fc] text-black font-semibold rounded-md border border-transparent shadow transition duration-200 cursor-pointer text-sm"
+          className="flex items-center gap-2 px-4 py-1.5 bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold rounded-md border border-transparent shadow transition duration-200 cursor-pointer text-sm"
         >
           <KeyRound className="w-4 h-4" />
           Login
@@ -31,13 +31,13 @@ export default function WalletButton() {
     <div className="relative">
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-[#141414] hover:bg-[#1c1c1c] text-gray-200 rounded-md border border-[#2e2e2e] shadow hover:border-brand-blue transition duration-200 cursor-pointer text-sm font-medium"
+        className="flex items-center gap-2 px-3 py-1.5 bg-[#242424] hover:bg-[#2f2f2f] text-[#fff7ed] rounded-md border border-[#3a322f] shadow hover:border-brand-blue transition duration-200 cursor-pointer text-sm font-medium"
       >
-        <span className="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
+        <span className="w-2 h-2 rounded-full bg-[#f0c57a] animate-pulse"></span>
         <span className="font-mono text-xs">{truncateAddress(account.address)}</span>
-        <span className="text-gray-400">|</span>
+        <span className="text-[#f3e4cf]">|</span>
         <span className="text-brand-blue font-mono text-xs">zkLogin</span>
-        <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+        <ChevronDown className="w-3.5 h-3.5 text-[#f3e4cf]" />
       </button>
 
       {showDropdown && (
@@ -48,8 +48,8 @@ export default function WalletButton() {
             onClick={() => setShowDropdown(false)}
           ></div>
 
-          <div className="absolute right-0 mt-2 w-48 bg-[#141414] border border-[#2e2e2e] rounded-md shadow-xl z-20 overflow-hidden">
-            <div className="px-4 py-2 border-b border-[#2e2e2e] text-xs text-gray-400 font-mono break-all">
+          <div className="absolute right-0 mt-2 w-48 bg-[#242424] border border-[#3a322f] rounded-md shadow-xl z-20 overflow-hidden">
+            <div className="px-4 py-2 border-b border-[#3a322f] text-xs text-[#f3e4cf] font-mono break-all">
               {account.address}
             </div>
             <button

@@ -3,25 +3,26 @@
 @theme {
   --font-sans: "Inter", sans-serif;
   --font-mono: "Inter", sans-serif;
-  --color-brand-blue: #38bdf8;
-  --color-brand-dark: #0a0a0a;
-  --color-brand-card: #141414;
-  --color-brand-border: #1f1f1f;
+  --color-brand-blue: #e7c88f;
+  --color-brand-dark: #1c1c1c;
+  --color-brand-card: #242424;
+  --color-brand-border: #3a322f;
 }
 
 html, body, #root {
   height: 100%;
   margin: 0;
-  font-family: 'Neue Haas Grotesk Display Pro 55 Roman', 'Neue Haas Grotesk Text Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 body, input, textarea, select, button {
+  font-family: inherit;
   font-weight: 400;
 }
 
 body {
-  background-color: #000000;
+  background-color: #1c1c1c;
   color: #e5e7eb;
 }
 
@@ -31,32 +32,32 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: #1c1c1c;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: #3a322f;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3e3e3e;
+  background: #e7c88f;
 }
 
 /* Custom @mysten/dapp-kit styles override to match dark theme */
 .sui-wallet-button {
-  background-color: #38bdf8 !important;
-  color: #000000 !important;
+  background-color: #e7c88f !important;
+  color: #1c1c1c !important;
   font-weight: 600 !important;
   border-radius: 0.375rem !important;
   transition: all 0.2s ease-in-out !important;
 }
 
 .sui-wallet-button:hover {
-  background-color: #7dd3fc !important;
+  background-color: #f4d9a8 !important;
   transform: translateY(-1px);
 }
 
 .liquid-glass {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(28, 28, 28, 0.34);
   background-blend-mode: luminosity;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -79,4 +80,20 @@ body {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+}
+
+.landing-bg {
+  animation: landing-bg-zoom 5s ease-in-out infinite alternate;
+  transform: scale(1.02);
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes landing-bg-zoom {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.32);
+  }
 }

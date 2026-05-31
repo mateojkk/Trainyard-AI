@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import WalletButton from "./WalletButton";
-import { useZkLogin } from "../context/ZkLoginContext";
-import { Database, UploadCloud } from "lucide-react";
+import { useZkLogin } from "../context/useZkLogin";
+import { UploadCloud } from "lucide-react";
 import styles from "./css/Navbar.module.css";
 
 export default function Navbar() {
@@ -16,10 +16,7 @@ export default function Navbar() {
     <nav className={styles.nav}>
       {/* Brand logo */}
       <Link to="/" className={styles.brand}>
-        <Database className={styles.logo} />
-        <span className={styles.brandText}>
-          Trainyard <span className={styles.brandHighlight}>AI</span>
-        </span>
+        <span className={styles.brandText}>Trainyard</span>
       </Link>
 
       {/* Navigation links */}

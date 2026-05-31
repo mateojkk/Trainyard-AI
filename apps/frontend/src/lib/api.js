@@ -8,6 +8,7 @@ const API_URL =
 
 const API = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -100,6 +101,21 @@ export const aiApi = {
    */
   describe: async (fileInfo) => {
     const response = await API.post("/ai/describe", fileInfo);
+    return response.data;
+  },
+};
+
+export const authApi = {
+  startGoogle: async (payload) => {
+    const response = await API.post("/auth/google/start", payload);
+    return response.data;
+  },
+  me: async () => {
+    const response = await API.get("/auth/me");
+    return response.data;
+  },
+  logout: async () => {
+    const response = await API.post("/auth/logout", {});
     return response.data;
   },
 };

@@ -1,83 +1,67 @@
-const SESSION_KEY = "trainyard.zklogin.session";
-const PENDING_KEY = "trainyard.zklogin.pending";
-const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const CLIENT_ID = import.meta.env.VITE_ZKLOGIN_GOOGLE_CLIENT_ID || "";
-const SALT = import.meta.env.VITE_ZKLOGIN_SALT || "1";
-const MAX_EPOCH = Number(import.meta.env.VITE_ZKLOGIN_MAX_EPOCH || 10);
+import { authApi } from "./api";
+import { getUserSalt, writeJson } from "./zkLoginStorage";
 
-export function getStoredZkLoginAccount() {
-  return readJson(SESSION_KEY)?.account || null;
-}
+const PENDING_KEY = "trainyard.zklogin.pending";
+const ENV_USER_SALT = import.meta.env.VITE_ZKLOGIN_SALT || "";
+const EPOCH_TTL = Number(import.meta.env.VITE_ZKLOGIN_EPOCH_TTL || 2);
+const SUI_NETWORK = import.meta.env.VITE_SUI_NETWORK || "mainnet";
+const SUI_RPC_URL = import.meta.env.VITE_SUI_RPC_URL || "https://fullnode.mainnet.sui.io:443";
 
 export async function beginZkLogin() {
-  if (!CLIENT_ID) {
-    throw new Error("Missing VITE_ZKLOGIN_GOOGLE_CLIENT_ID.");
-  }
-
   const { Ed25519Keypair } = await import("@mysten/sui/keypairs/ed25519");
-  const { generateNonce, generateRandomness } = await import("@mysten/sui/zklogin");
+  const { generateNonce, generateRandomness, getExtendedEphemeralPublicKey } = await import("@mysten/sui/zklogin");
   const keypair = Ed25519Keypair.generate();
   const randomness = generateRandomness();
-  const nonce = generateNonce(keypair.getPublicKey(), MAX_EPOCH, randomness);
+  const maxEpoch = await getMaxEpoch();
+  const nonce = generateNonce(keypair.getPublicKey(), maxEpoch, randomness);
 
-  writeSessionJson(PENDING_KEY, {
+  writeJson(PENDING_KEY, {
+    nonce,
     randomness,
-    maxEpoch: MAX_EPOCH,
+    maxEpoch,
     secretKey: keypair.getSecretKey(),
+    extendedEphemeralPublicKey: getExtendedEphemeralPublicKey(keypair.getPublicKey()),
+  }, window.sessionStorage);
+
+  const { authorization_url } = await authApi.startGoogle({
+    nonce,
+    return_to: getReturnToPath(),
   });
 
-  window.location.assign(buildGoogleUrl(nonce));
+  window.location.assign(authorization_url);
 }
 
-export async function consumeZkLoginRedirect() {
-  const idToken = new URLSearchParams(window.location.hash.slice(1)).get("id_token");
-  if (!idToken) return null;
-
+export async function hydrateZkLoginAccount() {
+  const session = await authApi.me();
+  if (!session.authenticated || !session.id_token) {
+    return null;
+  }
   const { decodeJwt, jwtToAddress } = await import("@mysten/sui/zklogin");
-  const jwt = decodeJwt(idToken);
-  const account = {
-    address: jwtToAddress(idToken, SALT, false),
-    email: jwt.email || "",
-    name: jwt.name || "zkLogin user",
-    provider: "Google zkLogin",
-  };
+  const jwt = decodeJwt(session.id_token);
+  const userSalt = getUserSalt(ENV_USER_SALT);
 
-  writeJson(SESSION_KEY, { account });
-  window.sessionStorage.setItem("trainyard.zklogin.jwt", idToken);
-  window.sessionStorage.removeItem(PENDING_KEY);
-  window.history.replaceState(null, "", window.location.pathname);
+  const account = {
+    address: jwtToAddress(session.id_token, userSalt, false),
+    email: session.account?.email || jwt.email || "",
+    name: session.account?.name || jwt.name || "zkLogin user",
+    provider: "Google zkLogin",
+    maxEpoch: session.account?.maxEpoch || undefined,
+  };
   return account;
 }
 
 export function clearZkLoginSession() {
-  window.localStorage.removeItem(SESSION_KEY);
+  authApi.logout().catch(() => {});
   window.sessionStorage.removeItem(PENDING_KEY);
-  window.sessionStorage.removeItem("trainyard.zklogin.jwt");
 }
 
-function buildGoogleUrl(nonce) {
-  const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: window.location.origin + window.location.pathname,
-    response_type: "id_token",
-    scope: "openid email profile",
-    nonce,
-  });
-  return `${GOOGLE_AUTH_URL}?${params.toString()}`;
+async function getMaxEpoch() {
+  const { SuiJsonRpcClient } = await import("@mysten/sui/jsonRpc");
+  const client = new SuiJsonRpcClient({ url: SUI_RPC_URL, network: SUI_NETWORK });
+  const systemState = await client.getLatestSuiSystemState();
+  return Number(systemState.epoch) + EPOCH_TTL;
 }
 
-function readJson(key) {
-  try {
-    return JSON.parse(window.localStorage.getItem(key) || "null");
-  } catch {
-    return null;
-  }
-}
-
-function writeJson(key, value) {
-  window.localStorage.setItem(key, JSON.stringify(value));
-}
-
-function writeSessionJson(key, value) {
-  window.sessionStorage.setItem(key, JSON.stringify(value));
+function getReturnToPath() {
+  return `${window.location.pathname}${window.location.search}`;
 }

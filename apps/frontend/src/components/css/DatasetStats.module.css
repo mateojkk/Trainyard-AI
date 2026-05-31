@@ -1,6 +1,6 @@
 .card {
-  background-color: #111111;
-  border: 1px solid #1a1a1a;
+  background-color: #242424;
+  border: 1px solid #3a322f;
   border-radius: 0.5rem;
   overflow: hidden;
   display: flex;
@@ -8,8 +8,8 @@
 }
 .hero {
   padding: 1.5rem;
-  background: linear-gradient(to bottom right, #020617, #0c0c0c);
-  border-bottom: 1px solid #1a1a1a;
+  background: linear-gradient(to bottom right, #1f1f1f, #242424);
+  border-bottom: 1px solid #3a322f;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -17,14 +17,14 @@
 }
 .licenseLabel {
   font-size: 0.625rem;
-  color: #6b7280;
+  color: rgba(255, 247, 237, 0.66);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 .price {
   font-size: 1.875rem;
   font-weight: 600;
-  color: #38bdf8;
+  color: #D89F55;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -33,7 +33,7 @@
 .priceLabel {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: #f3e4cf;
 }
 .buyBtn {
   width: 100%;
@@ -42,8 +42,8 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 0;
-  background-color: #38bdf8;
-  color: #000000;
+  background-color: #D89F55;
+  color: #23120A;
   font-weight: 600;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -54,7 +54,7 @@
   transition: background-color 0.15s;
 }
 .buyBtn:hover {
-  background-color: #7dd3fc;
+  background-color: #f0c57a;
 }
 .details {
   padding: 1rem;
@@ -69,10 +69,10 @@
   align-items: center;
 }
 .label {
-  color: #6b7280;
+  color: rgba(255, 247, 237, 0.66);
 }
 .value {
-  color: #d1d5db;
+  color: #fff7ed;
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -80,7 +80,7 @@
   text-transform: uppercase;
 }
 .detailSection {
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid #51322D;
   padding-top: 0.5rem;
   display: flex;
   flex-direction: column;
@@ -88,20 +88,20 @@
 }
 .sectionLabel {
   font-size: 0.5625rem;
-  color: #4b5563;
+  color: rgba(255, 247, 237, 0.58);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 .sectionVal {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: #f3e4cf;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .walrusCard {
-  background-color: #111111;
-  border: 1px solid #1a1a1a;
+  background-color: #242424;
+  border: 1px solid #3a322f;
   padding: 1rem;
   border-radius: 0.5rem;
   display: flex;
@@ -111,7 +111,7 @@
 .walrusTitle {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #d1d5db;
+  color: #fff7ed;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: flex;
@@ -124,7 +124,7 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.625rem;
-  color: #38bdf8;
+  color: #D89F55;
   text-decoration: none;
 }
 .walrusLink:hover {

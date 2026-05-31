@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useZkLogin } from "../context/ZkLoginContext";
+import { useZkLogin } from "../context/useZkLogin";
 import { datasetsApi, aiApi } from "../lib/api";
 import { generateKey, encryptFile } from "../lib/crypto";
 import StepChooseFile from "../components/upload/StepChooseFile";
@@ -79,7 +79,7 @@ export default function Upload() {
       const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
       
       updateStatus(0, "loading");
-      const { cryptoKey, keyBase64 } = await generateKey();
+      const { keyBase64 } = await generateKey();
       const { encryptedBlob, iv } = await encryptFile(file, keyBase64);
       updateStatus(0, "done");
 
@@ -132,12 +132,12 @@ export default function Upload() {
   return (
     <div className="max-w-xl mx-auto">
       {step < 3 && (
-        <div className="flex justify-between items-center mb-8 bg-[#0d0d0d] p-3 border border-[#1a1a1a] rounded text-xs font-mono text-gray-500">
-          <span className={step === 0 ? "text-brand-blue font-bold" : "text-gray-400"}>01. Choose File</span>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
-          <span className={step === 1 ? "text-brand-blue font-bold" : "text-gray-400"}>02. Configure Metadata</span>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
-          <span className={step === 2 ? "text-brand-blue font-bold" : "text-gray-400"}>03. Encrypt & Upload</span>
+        <div className="flex justify-between items-center mb-8 bg-[#242424] p-3 border border-[#3a322f] rounded text-xs font-mono text-[#f3e4cf]">
+          <span className={step === 0 ? "text-brand-blue font-bold" : "text-[#d1d5db]"}>01. Choose File</span>
+          <ChevronRight className="w-3.5 h-3.5 text-[#f3e4cf]" />
+          <span className={step === 1 ? "text-brand-blue font-bold" : "text-[#d1d5db]"}>02. Configure Metadata</span>
+          <ChevronRight className="w-3.5 h-3.5 text-[#f3e4cf]" />
+          <span className={step === 2 ? "text-brand-blue font-bold" : "text-[#d1d5db]"}>03. Encrypt & Upload</span>
         </div>
       )}
       {step === 0 && <StepChooseFile file={file} error={error} handleDragOver={(e) => e.preventDefault()} handleDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]); }} triggerFileSelect={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={(e) => { if (e.target.files?.[0]) processFile(e.target.files[0]); }} handleContinueToForm={handleContinueToForm} />}

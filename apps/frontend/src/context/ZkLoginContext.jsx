@@ -1,35 +1,31 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   beginZkLogin,
   clearZkLoginSession,
-  consumeZkLoginRedirect,
-  getStoredZkLoginAccount,
+  hydrateZkLoginAccount,
 } from "../lib/zkLogin";
-
-const ZkLoginContext = createContext(null);
+import { ZkLoginContext } from "./useZkLogin";
 
 export function ZkLoginProvider({ children }) {
-  const [account, setAccount] = useState(() => getStoredZkLoginAccount());
+  const [account, setAccount] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(() => {
-    return !!new URLSearchParams(window.location.hash.slice(1)).get("id_token");
-  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
-    async function finishRedirect() {
+    async function loadSession() {
       try {
-        const redirectAccount = await consumeZkLoginRedirect();
-        if (mounted && redirectAccount) setAccount(redirectAccount);
+        const sessionAccount = await hydrateZkLoginAccount();
+        if (mounted) setAccount(sessionAccount);
       } catch (err) {
-        if (mounted) setError(err.message || "zkLogin failed.");
+        if (mounted && err?.response?.status !== 401) setError(err.message || "zkLogin failed.");
       } finally {
         if (mounted) setLoading(false);
       }
     }
 
-    finishRedirect();
+    loadSession();
     return () => {
       mounted = false;
     };
@@ -59,10 +55,4 @@ export function ZkLoginProvider({ children }) {
       {children}
     </ZkLoginContext.Provider>
   );
-}
-
-export function useZkLogin() {
-  const context = useContext(ZkLoginContext);
-  if (!context) throw new Error("useZkLogin must be used inside ZkLoginProvider");
-  return context;
 }

@@ -8,46 +8,46 @@ export default function StepSuccess({
   navigate,
 }) {
   return (
-    <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6 space-y-6 text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-950/30 border border-blue-300/20 text-blue-200">
+    <div className="bg-[#242424] border border-[#3a322f] rounded-lg p-6 space-y-6 text-center">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#2f2f2f] border border-[#e7c88f]/20 text-[#e7c88f]">
         <ShieldCheck className="w-8 h-8 animate-pulse" />
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-base font-bold text-gray-100 uppercase tracking-wide">Dataset Live on Walrus!</h3>
-        <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+        <h3 className="text-base font-bold text-[#fff7ed] uppercase tracking-wide">Dataset Live on Walrus!</h3>
+        <p className="text-xs text-[#f3e4cf] max-w-xs mx-auto leading-relaxed">
           Your file was encrypted successfully and stored permanently on the Walrus mainnet storage network.
         </p>
       </div>
 
-      <div className="space-y-4 text-left border-t border-b border-[#1a1a1a] py-6">
+      <div className="space-y-4 text-left border-t border-b border-[#3a322f] py-6">
         <div className="space-y-1">
-          <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono flex items-center justify-between">
+          <span className="text-[10px] text-[#f3e4cf] uppercase tracking-widest font-mono flex items-center justify-between">
             <span>Encrypted Walrus Blob ID</span>
-            <span className="text-[9px] text-blue-300">Permanent</span>
+            <span className="text-[9px] text-[#f0c57a]">Permanent</span>
           </span>
           <div className="flex gap-2">
             <input
               type="text"
               readOnly
               value={result.blob_id}
-              className="flex-grow bg-[#141414] border border-[#2e2e2e] rounded p-2 text-xs font-mono text-gray-300 focus:outline-none"
+              className="flex-grow bg-[#2f2f2f] border border-[#3a322f] rounded p-2 text-xs font-mono text-[#fff7ed] focus:outline-none"
             />
             <button
               onClick={() => handleCopy(result.blob_id, "blob")}
-              className="px-3 border border-[#2e2e2e] hover:border-gray-500 rounded text-gray-400 hover:text-gray-200 transition cursor-pointer"
+              className="px-3 border border-[#3a322f] hover:border-[#e7c88f] rounded text-[#f3e4cf] hover:text-[#fff7ed] transition cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
           </div>
-          {copiedBlob && <span className="text-[9px] text-blue-300 block font-mono">Copied Blob ID!</span>}
+          {copiedBlob && <span className="text-[9px] text-[#f0c57a] block font-mono">Copied Blob ID!</span>}
         </div>
 
-        <div className="space-y-1 bg-blue-950/10 border border-brand-blue/10 p-3.5 rounded">
+        <div className="space-y-1 bg-[#1f1f1f] border border-brand-blue/10 p-3.5 rounded">
           <span className="text-[10px] text-brand-blue uppercase tracking-widest font-bold font-mono block">
             Decryption Key (Save this!)
           </span>
-          <p className="text-[10px] text-gray-500 leading-normal">
+          <p className="text-[10px] text-[#f3e4cf] leading-normal">
             This key is stored on our secure API nodes and will only be released after verified USDC payment on Sui. Keep a copy in your records.
           </p>
           
@@ -56,7 +56,7 @@ export default function StepSuccess({
               type="text"
               readOnly
               value={result.key_base64}
-              className="flex-grow bg-[#0c0c0c] border border-brand-blue/20 rounded p-2 text-xs font-mono text-brand-blue focus:outline-none"
+              className="flex-grow bg-[#1f1f1f] border border-brand-blue/20 rounded p-2 text-xs font-mono text-brand-blue focus:outline-none"
             />
             <button
               onClick={() => handleCopy(result.key_base64, "key")}
@@ -69,7 +69,7 @@ export default function StepSuccess({
         </div>
 
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-500">Walrusscan Mainnet link</span>
+          <span className="text-[#f3e4cf]">Walrusscan Mainnet link</span>
           <a
             href={result.walrus_explorer_url}
             target="_blank"
@@ -84,7 +84,7 @@ export default function StepSuccess({
 
       <button
         onClick={() => navigate(`/dataset/${result.id}`)}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-[#38bdf8] hover:bg-[#7dd3fc] text-black font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 py-3 bg-brand-blue hover:bg-[#f0c57a] text-[#23120A] font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer"
       >
         View in Marketplace
         <ArrowRight className="w-4 h-4" />

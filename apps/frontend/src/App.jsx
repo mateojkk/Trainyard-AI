@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, Link } from "react-router-dom";
-import { useZkLogin } from "./context/ZkLoginContext";
+import { useZkLogin } from "./context/useZkLogin";
 import Navbar from "./components/Navbar";
 import Marketplace from "./pages/Marketplace";
 import Upload from "./pages/Upload";
@@ -20,8 +20,8 @@ function RequireAuth({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center text-gray-200">
-        <Loader2 className="w-10 h-10 text-[#38bdf8] animate-spin mb-4" />
+      <div className="min-h-screen bg-[#1c1c1c] flex flex-col items-center justify-center text-gray-200">
+        <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
         <p className="text-sm font-semibold font-sans">Processing zkLogin authentication...</p>
       </div>
     );
@@ -29,10 +29,10 @@ function RequireAuth({ children }) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center text-gray-200 px-4 text-center">
+      <div className="min-h-screen bg-[#1c1c1c] flex flex-col items-center justify-center text-gray-200 px-4 text-center">
         <p className="text-red-400 font-semibold font-sans mb-2">Authentication Error</p>
         <p className="text-xs text-gray-400 max-w-md mb-4">{error}</p>
-        <Link to="/" className="text-xs text-[#38bdf8] hover:underline font-sans">
+        <Link to="/" className="text-xs text-[#e7c88f] hover:underline font-sans">
           Return to Landing Page
         </Link>
       </div>
@@ -41,8 +41,8 @@ function RequireAuth({ children }) {
 
   if (!account) {
     return (
-      <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center text-gray-200">
-        <Loader2 className="w-10 h-10 text-[#38bdf8] animate-spin mb-4" />
+      <div className="min-h-screen bg-[#1c1c1c] flex flex-col items-center justify-center text-gray-200">
+        <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
         <p className="text-sm font-semibold font-sans">Redirecting to zkLogin authentication...</p>
       </div>
     );
@@ -52,23 +52,23 @@ function RequireAuth({ children }) {
 }
 
 function App() {
-  const { account, loading, login } = useZkLogin();
+  const { account, loading, login, error } = useZkLogin();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center text-gray-200">
-        <Loader2 className="w-10 h-10 text-[#38bdf8] animate-spin mb-4" />
+      <div className="min-h-screen bg-[#161313] flex flex-col items-center justify-center text-gray-200">
+        <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
         <p className="text-sm font-semibold font-sans">Processing zkLogin authentication...</p>
       </div>
     );
   }
 
   if (!account && window.location.pathname === "/") {
-    return <Landing onLogin={login} />;
+    return <Landing onLogin={login} authError={error} />;
   }
 
   return (
-    <div className="min-h-screen bg-[#000000] text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#1c1c1c] text-gray-100 flex flex-col font-sans">
       {/* Navigation bar */}
       {account && <Navbar />}
       
@@ -77,7 +77,7 @@ function App() {
         <Routes>
           <Route 
             path="/" 
-            element={account ? <Marketplace /> : <Landing onLogin={login} />} 
+            element={account ? <Marketplace /> : <Landing onLogin={login} authError={error} />} 
           />
           <Route 
             path="/upload" 

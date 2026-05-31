@@ -1,10 +1,13 @@
 .footer {
-  border-top: 1px solid var(--color-brand-border, #1f1f1f);
   padding: 1.5rem 1rem;
-  background-color: #070707;
+  background-color: #1c1c1c;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: rgba(226, 181, 111, 0.74);
   text-align: center;
+}
+
+.landing {
+  background-color: #23120a;
 }
 
 .container {
@@ -27,15 +30,15 @@
 }
 
 .link {
-  color: #6b7280;
+  color: rgba(226, 181, 111, 0.74);
   text-decoration: none;
   transition: color 0.2s ease-in-out;
 }
 
 .link:hover {
-  color: var(--color-brand-blue, #38bdf8);
+  color: #e2b56f;
 }
 
 .separator {
-  color: #333;
+  color: #6d4a41;
 }
