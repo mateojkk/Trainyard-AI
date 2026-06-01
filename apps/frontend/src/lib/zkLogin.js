@@ -120,7 +120,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const partialZkLoginSignature = await zkproverApi.prove({
     jwt: session.id_token, maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
-    jwtRandomness: pending.randomness, salt: "0x" + saltBigInt.toString(16),
+    jwtRandomness: pending.randomness, salt: saltBigInt.toString(10),
   });
   const addressSeed = genAddressSeed(saltBigInt, "sub", decodedJwt.sub, decodedJwt.aud).toString();
   const zkLoginSignature = getZkLoginSignature({
