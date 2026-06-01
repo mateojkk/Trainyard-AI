@@ -84,23 +84,6 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     }
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
-  // Create a proxy to bypass the GraphQL resolver and fall back to the offline/core resolver
-  const offlineClient = new Proxy(client, {
-    get(target, prop) {
-      if (prop === "core") {
-        return new Proxy(target.core, {
-          get(coreTarget, coreProp) {
-            if (coreProp === "resolveTransactionPlugin") return () => undefined;
-            const value = Reflect.get(coreTarget, coreProp);
-            return typeof value === "function" ? value.bind(coreTarget) : value;
-          }
-        });
-      }
-      const value = Reflect.get(target, prop);
-      return typeof value === "function" ? value.bind(target) : value;
-    }
-  });
-
   // Build gasless stablecoin PTB using address balance intents.
   // Each tx.balance() call creates an independent withdrawal reservation;
   // the SDK resolves both via 0x2::balance::redeem_funds during signing.
@@ -114,7 +97,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)] });
   
   // Build and print transaction data for debugging before signing
-  await tx.build({ client: offlineClient });
+  await tx.build({ client });
   console.log("[zkLogin] Built transaction data:", {
     expiration: tx.getData().expiration,
     gasData: tx.getData().gasData,
@@ -122,7 +105,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   });
 
   let bytes, userSignature;
-  ({ bytes, signature: userSignature } = await tx.sign({ client: offlineClient, signer: keypair }));
+  ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
   console.log("[zkLogin] Prover request payload:", {
     maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
