@@ -12,3 +12,6 @@ dependencies = [
     "pycryptodome==3.20.0"
 ]
 
+[tool.vercel]
+entrypoint = "api.index:app"
+
