@@ -45,9 +45,12 @@ export default function WalletButton() {
     try {
       const raw = window.sessionStorage.getItem(PENDING_KEY);
       if (!raw) return;
-      const keypair = Ed25519Keypair.fromSecretKey(JSON.parse(raw).secretKey);
+      const pending = JSON.parse(raw);
+      const sk = pending.secretKey;
+      const bytes = sk instanceof Uint8Array ? sk : new Uint8Array(Object.values(sk));
+      const keypair = Ed25519Keypair.fromSecretKey(bytes);
       setExportState({ open: true, key: keypair.toSuiPrivateKey(), revealed: false, copied: false });
-    } catch {}
+    } catch (e) { console.error("Export key failed:", e); }
   };
 
   const toggleReveal = () => setExportState(s => ({ ...s, revealed: !s.revealed }));
