@@ -48,15 +48,15 @@ app.add_middleware(
 )
 
 # Register routers
-app.include_router(datasets.router, prefix="/datasets", tags=["datasets"])
-app.include_router(payments.router, prefix="/payments", tags=["payments"])
-app.include_router(ai.router, prefix="/ai", tags=["ai"])
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(zkprover.router, prefix="/zkprover", tags=["zkprover"])
-app.include_router(profiles.router, prefix="/profiles", tags=["profiles"])
-app.include_router(sui_rpc.router, prefix="/sui-rpc", tags=["sui-rpc"])
+app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
+app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(zkprover.router, prefix="/api/zkprover", tags=["zkprover"])
+app.include_router(profiles.router, prefix="/api/profiles", tags=["profiles"])
+app.include_router(sui_rpc.router, prefix="/api/sui-rpc", tags=["sui-rpc"])
 
-@app.get("/")
+@app.get("/api")
 async def root():
     return {
         "status": "healthy",
