@@ -135,13 +135,14 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
     jwtRandomness: pending.randomness, salt: saltBigInt.toString(10),
   });
+  console.log("[zkLogin] Prover raw response:", partialZkLoginSignature);
   const addressSeed = genAddressSeed(saltBigInt, "sub", decodedJwt.sub, decodedJwt.aud).toString();
   
   const mappedInputs = {
     proofPoints: {
-      a: partialZkLoginSignature.proofPoints.pi_a,
-      b: partialZkLoginSignature.proofPoints.pi_b,
-      c: partialZkLoginSignature.proofPoints.pi_c,
+      a: partialZkLoginSignature.zkProof.proofPoints.a,
+      b: partialZkLoginSignature.zkProof.proofPoints.b,
+      c: partialZkLoginSignature.zkProof.proofPoints.c,
     },
     issBase64Details: {
       value: partialZkLoginSignature.issBase64Details.value,
