@@ -78,6 +78,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     if (available < priceInBaseUnits) throw new Error(`Insufficient USDC: have ${available}, need ${priceInBaseUnits}`);
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
+  const [systemStateResult, chainId] = await Promise.all([
+    client.core.getCurrentSystemState(),
+    client.core.getChainIdentifier(),
+  ]);
+  const currentEpoch = BigInt(systemStateResult.systemState.epoch);
+
   // Build gasless stablecoin PTB using address balance intents.
   // Each tx.balance() call creates an independent withdrawal reservation;
   // the SDK resolves both via 0x2::balance::redeem_funds during signing.
@@ -85,6 +91,17 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   tx.setSender(sender);
   tx.setGasPrice(0);
   tx.setGasBudget(0);
+  tx.setExpiration({
+    $kind: "ValidDuring",
+    ValidDuring: {
+      minEpoch: String(currentEpoch),
+      maxEpoch: String(currentEpoch + 1n),
+      minTimestamp: null,
+      maxTimestamp: null,
+      chain: chainId.chainIdentifier,
+      nonce: Math.floor(Math.random() * 4294967296),
+    }
+  });
   const sellerBalance = tx.balance({ type: USDC_COIN_TYPE, balance: sellerAmount });
   const commissionBalance = tx.balance({ type: USDC_COIN_TYPE, balance: commissionAmount });
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [sellerBalance, tx.pure.address(sellerAddress)] });
