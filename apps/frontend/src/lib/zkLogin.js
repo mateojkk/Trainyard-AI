@@ -70,11 +70,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const commissionAmount = priceInBaseUnits * 5n / 100n;
   const sellerAmount = priceInBaseUnits - commissionAmount;
 
-  // Pre-flight balance check via gRPC core API
+  // Pre-flight balance check via GraphQL core API
   try {
     const { balance } = await client.core.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
     const available = BigInt(balance.balance ?? 0);
-    if (available < priceInBaseUnits) throw new Error(`Insufficient USDC`);
+    console.log("[zkLogin] Balance check:", { sender, available: available.toString(), priceInBaseUnits: priceInBaseUnits.toString(), sellerAmount: sellerAmount.toString(), commissionAmount: commissionAmount.toString(), addressBalance: balance.addressBalance, coinBalance: balance.coinBalance });
+    if (available < priceInBaseUnits) throw new Error(`Insufficient USDC: have ${available}, need ${priceInBaseUnits}`);
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
   // Build gasless stablecoin PTB using address balance intents.
@@ -88,15 +89,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [sellerBalance, tx.pure.address(sellerAddress)] });
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)] });
   let bytes, userSignature;
-  try {
-    ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
-  } catch (signErr) {
-    const msg = signErr.message || "";
-    if (msg.includes("Invalid withdraw reservation") || msg.includes("less than requested") || msg.includes("Insufficient balance")) {
-      throw new Error(`Insufficient USDC balance. Fund your zkLogin address (${sender.slice(0,6)}...${sender.slice(-4)}) with USDC on Sui mainnet and try again.`);
-    }
-    throw signErr;
-  }
+  ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
   const partialZkLoginSignature = await zkproverApi.prove({
     jwt: session.id_token, maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
