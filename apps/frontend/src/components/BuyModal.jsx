@@ -105,7 +105,7 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
                   <span className="text-xs text-[#f3e4cf] block font-semibold uppercase">Total Price</span>
                   <span className="text-xs text-[#d1d5db] block leading-tight">Includes 5% fee — gasless</span>
                 </div>
-                <div className="text-2xl font-bold text-brand-blue font-sans flex items-center gap-1.5">{formatPaymentAmount(dataset.price_sui)} <span className="text-xs text-gray-400 font-normal">{PAYMENT_SYMBOL}</span></div>
+                <div className="text-xl sm:text-2xl font-bold text-brand-blue font-sans flex items-center gap-1.5">{formatPaymentAmount(dataset.price_sui)} <span className="text-xs text-gray-400 font-normal">{PAYMENT_SYMBOL}</span></div>
               </div>
 
               <div className="bg-[#1f1f1f] border border-[#3a322f] rounded p-3 text-xs text-[#f3e4cf] leading-relaxed">

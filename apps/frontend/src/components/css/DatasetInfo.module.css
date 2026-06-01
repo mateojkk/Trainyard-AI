@@ -32,17 +32,30 @@
   font-size: 0.75rem;
 }
 .title {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #fff7ed;
   margin: 0;
   line-height: 1.25;
 }
+
+@media (min-width: 640px) {
+  .title {
+    font-size: 1.5rem;
+  }
+}
 .desc {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: rgba(255, 247, 237, 0.8);
-  line-height: 1.625;
+  line-height: 1.5;
   margin: 0;
+}
+
+@media (min-width: 640px) {
+  .desc {
+    font-size: 0.875rem;
+    line-height: 1.625;
+  }
 }
 .tags {
   display: flex;

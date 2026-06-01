@@ -16,10 +16,10 @@ const ProfileCard = memo(function ProfileCard({ profile, datasetsCount, isOwn, f
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold text-gray-100 truncate">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-100 truncate">
                   {profile.display_name || profile.username}
                 </h1>
-                <span className="text-[#e7c88f] font-mono text-sm shrink-0">@{profile.username}</span>
+                <span className="text-[#e7c88f] font-mono text-xs sm:text-sm shrink-0">@{profile.username}</span>
               </div>
               {profile.bio && <p className="text-gray-400 text-sm mt-2">{profile.bio}</p>}
               <div className="flex items-center gap-3 mt-3 text-gray-500 text-xs flex-wrap">

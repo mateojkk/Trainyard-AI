@@ -41,17 +41,30 @@
 }
 
 .featureTitle {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff7ed;
   margin: 0;
 }
 
+@media (min-width: 640px) {
+  .featureTitle {
+    font-size: 1.125rem;
+  }
+}
+
 .featureDesc {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: rgba(255, 247, 237, 0.74);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
+}
+
+@media (min-width: 640px) {
+  .featureDesc {
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
 }
 
 .cta {
@@ -67,17 +80,30 @@
 }
 
 .ctaTitle {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #fff7ed;
   margin: 0;
 }
 
+@media (min-width: 640px) {
+  .ctaTitle {
+    font-size: 1.5rem;
+  }
+}
+
 .ctaDesc {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: rgba(255, 247, 237, 0.74);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
+}
+
+@media (min-width: 640px) {
+  .ctaDesc {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
 }
 
 .ctaBtn {

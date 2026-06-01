@@ -1,9 +1,8 @@
 .hero {
   position: relative;
   text-align: center;
-  padding: 6rem 2rem;
+  padding: 4rem 1.5rem;
   background-color: #23120A;
-  /* Slot for background image ready */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -13,7 +12,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 24rem;
+  min-height: 16rem;
+}
+
+@media (min-width: 640px) {
+  .hero {
+    padding: 6rem 2rem;
+    min-height: 24rem;
+  }
 }
 
 /* Subtle glow overlay that can blend with the background image later */
@@ -36,7 +42,7 @@
 }
 
 .title {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 600;
   color: #ffffff;
   letter-spacing: -0.03em;
@@ -45,6 +51,12 @@
 }
 
 @media (min-width: 640px) {
+  .title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
   .title {
     font-size: 3.5rem;
   }
@@ -57,10 +69,18 @@
 }
 
 .desc {
-  margin-top: 1.25rem;
-  font-size: 0.95rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
   color: #a3a3a3;
-  line-height: 1.7;
+  line-height: 1.6;
+}
+
+@media (min-width: 640px) {
+  .desc {
+    margin-top: 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
 }
 
 .action {

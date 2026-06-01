@@ -12,12 +12,12 @@ export default function Landing({ onLogin, authError }) {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#D89F55]/20 via-transparent to-[#23120A]/25" />
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#23120A]/65 to-transparent" />
-        <nav className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-6 md:px-10 py-4 sm:py-6">
+        <nav className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-6 md:px-10 py-3 sm:py-6">
           <div className="flex items-center gap-2 text-[#23120A]">
-            <span className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight font-sans">Trainyard</span>
+            <span className="text-base sm:text-lg md:text-2xl font-semibold tracking-tight font-sans">Trainyard</span>
           </div>
           <div>
-            <button onClick={onLogin} className="bg-[#23120A] hover:bg-[#3F2420] text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors cursor-pointer border-0 shadow-sm font-sans">
+            <button onClick={onLogin} className="bg-[#23120A] hover:bg-[#3F2420] text-white text-xs sm:text-sm font-medium px-4 sm:px-5 py-2 sm:py-2.5 rounded-full transition-colors cursor-pointer border-0 shadow-sm font-sans">
               Access App
             </button>
           </div>
@@ -26,12 +26,12 @@ export default function Landing({ onLogin, authError }) {
         {/* Hero copy */}
         <div className="relative z-10 flex flex-col items-center text-center pt-24 sm:pt-28 md:pt-32 px-4 sm:px-6">
           <h1
-            className="font-normal leading-[0.95] text-[#23120A] text-[2rem] sm:text-4xl md:text-5xl lg:text-[4.75rem] xl:text-[5.25rem] max-w-5xl"
+            className="font-normal leading-[0.95] text-[#23120A] text-xl xs:text-2xl sm:text-4xl md:text-5xl lg:text-[4.75rem] xl:text-[5.25rem] max-w-5xl"
             style={{ letterSpacing: '-0.035em', textShadow: '0 2px 24px rgba(255, 255, 255, 0.32)' }}
           >
             Start Training <span className="text-[#51322D]">Better<br className="hidden sm:block" /> Models</span>
           </h1>
-          <p className="mt-6 sm:mt-8 text-white/90 text-sm sm:text-base md:text-lg leading-relaxed max-w-lg px-2 drop-shadow">
+          <p className="mt-4 sm:mt-8 text-white/90 text-xs sm:text-sm md:text-base leading-relaxed max-w-lg px-4 sm:px-2 drop-shadow">
             Access verified, securely encrypted training datasets, or monetize your AI assets with automated, trustless settlement.
           </p>
         </div>
