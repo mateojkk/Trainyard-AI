@@ -10,87 +10,53 @@ import { Loader2, ShieldAlert, KeyRound, CreditCard, CheckCircle2, AlertTriangle
 
 export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
   const { account, signAndExecuteTransaction } = useZkLogin();
-
   const [loading, setLoading] = useState(false);
   const [statusStep, setStatusStep] = useState("");
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [decryptionKey, setDecryptionKey] = useState("");
   const [verificationResult, setVerificationResult] = useState(null);
-
   if (!isOpen) return null;
 
   const handlePurchase = async () => {
     if (!account) return;
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-    setVerificationResult(null);
-
+    setLoading(true); setError(null); setSuccess(false); setVerificationResult(null);
     try {
       setStatusStep("Sending gasless USDC payment via zkLogin...");
-      const txDigest = await signAndExecuteTransaction(dataset.price_sui);
-
+      const txDigest = await signAndExecuteTransaction(dataset.price_sui, dataset.seller_address);
       setStatusStep("Verifying transaction via Tatum RPC...");
       const verifyResult = await paymentsApi.verify(dataset.id, account.address, txDigest, dataset.blob_id);
       if (!verifyResult.success) throw new Error(verifyResult.error || "Payment verification failed.");
-
       setDecryptionKey(verifyResult.key_base64);
-
       setStatusStep("Fetching encrypted blob from Walrus...");
       const encryptedBuffer = await fetchFromWalrus(dataset.blob_id);
-
       setStatusStep("Decrypting dataset in browser...");
       const decryptedBlob = await decryptBlob(encryptedBuffer, verifyResult.key_base64, verifyResult.iv);
-
       setStatusStep("Verifying dataset fingerprint...");
       let parsedPreview = null;
-      try {
-        if (previewText && previewText.startsWith("{")) {
-          parsedPreview = JSON.parse(previewText);
-        }
-      } catch (e) {
-        console.error("Verification JSON parse error:", e);
-      }
-
-      if (parsedPreview && parsedPreview.fingerprint) {
-        const decryptedFile = new File([decryptedBlob], dataset.file_name, { type: decryptedBlob.type });
-        const verifyRes = await verifyDecryptedFile(decryptedFile, parsedPreview.fingerprint);
+      try { if (previewText && previewText.startsWith("{")) parsedPreview = JSON.parse(previewText); } catch {}
+      if (parsedPreview?.fingerprint) {
+        const verifyRes = await verifyDecryptedFile(new File([decryptedBlob], dataset.file_name, { type: decryptedBlob.type }), parsedPreview.fingerprint);
         setVerificationResult(verifyRes);
-      } else {
-        setVerificationResult({ match: true, details: "Verified listing metadata match (size, file type)." });
-      }
-
+      } else setVerificationResult({ match: true, details: "Verified listing metadata match (size, file type)." });
       setStatusStep("Saving decrypted dataset to device...");
       const url = URL.createObjectURL(decryptedBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = dataset.file_name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
+      const link = document.createElement("a"); link.href = url; link.download = dataset.file_name;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
       setSuccess(true);
     } catch (err) {
       console.error(err);
       setError(err.message || `Failed to complete ${PAYMENT_SYMBOL} purchase.`);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="fixed inset-0 bg-[#1c1c1c]/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-[#242424] border border-[#3a322f] rounded-lg max-w-md w-full overflow-hidden shadow-2xl">
         <div className="border-b border-[#3a322f] p-4 flex justify-between items-center bg-[#1f1f1f]">
-          <h2 className="text-sm font-bold text-[#fff7ed] uppercase tracking-wider flex items-center gap-2 m-0">
-            <CreditCard className="w-4 h-4 text-brand-blue" />
-            Purchase Listing
-          </h2>
+          <h2 className="text-sm font-bold text-[#fff7ed] uppercase tracking-wider flex items-center gap-2 m-0"><CreditCard className="w-4 h-4 text-brand-blue" />Purchase Listing</h2>
           <button onClick={onClose} disabled={loading} className="text-[#f3e4cf] hover:text-[#fff7ed] disabled:opacity-30 cursor-pointer text-sm bg-transparent border-0">✕</button>
         </div>
-
         <div className="p-6 space-y-6">
           {!success ? (
             <>
@@ -99,7 +65,6 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
                 <div className="font-sans font-bold text-[#fff7ed] text-lg leading-snug">{dataset.title}</div>
                 <div className="text-xs text-[#f3e4cf]">Includes: <span className="font-mono text-[#fff7ed]">{dataset.file_name}</span> ({dataset.file_type.toUpperCase()})</div>
               </div>
-
               <div className="bg-[#1f1f1f] border border-[#3a322f] rounded p-4 flex justify-between items-center">
                 <div>
                   <span className="text-xs text-[#f3e4cf] block font-semibold uppercase">Total Price</span>
@@ -107,16 +72,11 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-brand-blue font-sans flex items-center gap-1.5">{formatPaymentAmount(dataset.price_sui)} <span className="text-xs text-gray-400 font-normal">{PAYMENT_SYMBOL}</span></div>
               </div>
-
               <div className="bg-[#1f1f1f] border border-[#3a322f] rounded p-3 text-xs text-[#f3e4cf] leading-relaxed">
-                You are about to send <strong>{formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</strong> to the platform wallet. 
-                This transaction uses Sui's <strong>gasless stablecoin transfer</strong> protocol — 
-                no gas fees, no SUI required.
+                You are about to send <strong>{formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</strong> — <strong>95% to the creator</strong> and <strong>5% platform fee</strong>. Uses Sui's <strong>gasless stablecoin transfer</strong> protocol — no gas fees, no SUI required.
               </div>
-
               {loading && <div className="flex items-center gap-3 bg-[#1f1f1f] p-3 border border-[#3a322f] rounded text-xs text-[#f3e4cf] font-mono"><Loader2 className="w-4 h-4 text-brand-blue animate-spin flex-shrink-0" /><span>{statusStep}</span></div>}
               {error && <div className="flex items-start gap-2 bg-red-950/10 border border-red-900/30 p-3 rounded text-xs text-red-400"><ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" /><span>{error}</span></div>}
-
               <button onClick={handlePurchase} disabled={loading || !account} className="w-full flex items-center justify-center gap-2 py-3 bg-[#D89F55] hover:bg-[#f0c57a] disabled:bg-[#51322D] text-[#23120A] disabled:text-[#f3e4cf] font-bold rounded shadow transition duration-150 cursor-pointer text-sm uppercase">
                 {!account ? <><KeyRound className="w-4 h-4" />Sign in with zkLogin</> : <><CreditCard className="w-4 h-4" />Pay {formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</>}
               </button>
@@ -124,22 +84,11 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
           ) : (
             <div className="space-y-6">
               <BuyModalSuccess decryptionKey={decryptionKey} onClose={onClose} />
-              
               {verificationResult && (
-                <div className={`border rounded p-4 text-xs flex items-start gap-3 ${
-                  verificationResult.match 
-                    ? "bg-green-950/10 border-green-900/30 text-green-400" 
-                    : "bg-red-950/20 border-red-900/40 text-red-400"
-                }`}>
-                  {verificationResult.match ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  )}
+                <div className={`border rounded p-4 text-xs flex items-start gap-3 ${verificationResult.match ? "bg-green-950/10 border-green-900/30 text-green-400" : "bg-red-950/20 border-red-900/40 text-red-400"}`}>
+                  {verificationResult.match ? <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />}
                   <div>
-                    <span className="font-bold block uppercase tracking-wider text-[10px] font-mono mb-1">
-                      {verificationResult.match ? "Cryptographic Verification Match" : "Security Alert: Verification Mismatch"}
-                    </span>
+                    <span className="font-bold block uppercase tracking-wider text-[10px] font-mono mb-1">{verificationResult.match ? "Cryptographic Verification Match" : "Security Alert: Verification Mismatch"}</span>
                     <p className="leading-relaxed">{verificationResult.details}</p>
                   </div>
                 </div>

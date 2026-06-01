@@ -19,7 +19,8 @@ async def verify_payment(tx_digest: str, expected_price_usdc: float) -> bool:
         logger.error("SUI_MAINNET_RPC is not set in environment")
         return False
     expected_units = int(expected_price_usdc * (10 ** USDC_DECIMALS))
-    logger.info(f"Verifying {tx_digest}. Expecting {expected_units} USDC units at {PLATFORM_WALLET_ADDRESS}")
+    expected_commission = int(expected_units * 0.05)
+    logger.info(f"Verifying {tx_digest}. Expecting {expected_units} total USDC, >= {expected_commission} to platform.")
 
     payload = {
         "jsonrpc": "2.0",
@@ -65,28 +66,28 @@ async def verify_payment(tx_digest: str, expected_price_usdc: float) -> bool:
                 return False
 
             balance_changes = result.get("balanceChanges", [])
+            total_positive = 0
             platform_received = 0
-
             normalized_platform_address = PLATFORM_WALLET_ADDRESS.lower().strip()
 
             for change in balance_changes:
-                owner = change.get("owner", {})
-                address_owner = owner.get("AddressOwner", "")
                 coin_type = change.get("coinType", "")
-
-                is_platform_owner = address_owner.lower().strip() == normalized_platform_address
-                if is_platform_owner and coin_type == USDC_COIN_TYPE:
-                    amount_units = int(change.get("amount", "0"))
-                    if amount_units > 0:
+                if coin_type != USDC_COIN_TYPE:
+                    continue
+                amount_units = int(change.get("amount", "0"))
+                if amount_units > 0:
+                    total_positive += amount_units
+                    owner = change.get("owner", {})
+                    if owner.get("AddressOwner", "").lower().strip() == normalized_platform_address:
                         platform_received += amount_units
 
-            logger.info(f"Platform received total USDC units: {platform_received}")
+            logger.info(f"Total USDC transferred: {total_positive}, platform received: {platform_received}")
 
-            if platform_received >= expected_units:
-                logger.info(f"Transaction verified successfully: {platform_received} USDC units.")
+            if total_positive >= expected_units and platform_received >= expected_commission:
+                logger.info(f"Transaction verified successfully.")
                 return True
             else:
-                logger.error(f"Platform received {platform_received}, expected {expected_units}.")
+                logger.error(f"Verification failed: total={total_positive}, platform={platform_received}, expected_total={expected_units}, expected_commission={expected_commission}.")
                 return False
 
         except Exception as e:

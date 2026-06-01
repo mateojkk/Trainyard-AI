@@ -69,7 +69,7 @@ export function clearZkLoginSession() {
   window.sessionStorage.removeItem(PENDING_KEY);
 }
 
-export async function signAndExecuteTransaction(priceInUsdc) {
+export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const pending = loadPending();
   if (!pending) throw new Error("No zkLogin session found. Please sign in again.");
   const session = await authApi.me();
@@ -79,6 +79,7 @@ export async function signAndExecuteTransaction(priceInUsdc) {
   const decodedJwt = decodeJwt(session.id_token);
   const sender = jwtToAddress(session.id_token, saltBigInt, false);
   const priceInBaseUnits = BigInt(Math.round(priceInUsdc * 1_000_000));
+  const commissionAmount = priceInBaseUnits * 5n / 100n;
   const { totalBalance } = await client.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
   if (BigInt(totalBalance || "0") < priceInBaseUnits)
     throw new Error(`Insufficient USDC balance. You have ${(Number(totalBalance) / 1_000_000).toFixed(2)} USDC but need ${priceInUsdc.toFixed(2)} USDC.`);
@@ -86,10 +87,21 @@ export async function signAndExecuteTransaction(priceInUsdc) {
   const tx = new Transaction();
   tx.setSender(sender);
   tx.setGasPrice(0);
+  const total = tx.balance({ type: USDC_COIN_TYPE, balance: priceInBaseUnits });
+  const commission = tx.moveCall({
+    target: "0x2::balance::split",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [total, tx.pure.u64(commissionAmount)],
+  });
   tx.moveCall({
     target: "0x2::balance::send_funds",
     typeArguments: [USDC_COIN_TYPE],
-    arguments: [tx.balance({ type: USDC_COIN_TYPE, balance: priceInBaseUnits }), tx.pure.address(PLATFORM_ADDRESS)],
+    arguments: [total, tx.pure.address(sellerAddress)],
+  });
+  tx.moveCall({
+    target: "0x2::balance::send_funds",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [commission, tx.pure.address(PLATFORM_ADDRESS)],
   });
   let bytes, userSignature;
   try {

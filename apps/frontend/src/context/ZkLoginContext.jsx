@@ -35,8 +35,8 @@ export function ZkLoginProvider({ children }) {
     return () => { mounted = false; };
   }, []);
 
-  const signTx = useCallback(async (priceInUsdc) => {
-    const txDigest = await signAndExecuteTransaction(priceInUsdc);
+  const signTx = useCallback(async (priceInUsdc, sellerAddress) => {
+    const txDigest = await signAndExecuteTransaction(priceInUsdc, sellerAddress);
     return txDigest;
   }, []);
 
