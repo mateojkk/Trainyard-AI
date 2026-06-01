@@ -92,10 +92,10 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
   } catch (signErr) {
     const msg = signErr.message || "";
-    if (msg.includes("Invalid withdraw reservation") || msg.includes("less than requested") || msg.includes("Transaction build failed")) {
+    if (msg.includes("Invalid withdraw reservation") || msg.includes("less than requested") || msg.includes("Insufficient balance")) {
       throw new Error(`Insufficient USDC balance. Fund your zkLogin address (${sender.slice(0,6)}...${sender.slice(-4)}) with USDC on Sui mainnet and try again.`);
     }
-    throw new Error(`Transaction build failed: ${msg}`);
+    throw signErr;
   }
   const partialZkLoginSignature = await zkproverApi.prove({
     jwt: session.id_token, maxEpoch: String(pending.maxEpoch),
