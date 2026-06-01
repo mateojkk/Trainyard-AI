@@ -79,6 +79,10 @@ export async function signAndExecuteTransaction(priceInUsdc) {
   const decodedJwt = decodeJwt(session.id_token);
   const sender = jwtToAddress(session.id_token, saltBigInt, false);
   const priceInBaseUnits = BigInt(Math.round(priceInUsdc * 1_000_000));
+  const { totalBalance } = await client.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
+  if (BigInt(totalBalance || "0") < priceInBaseUnits)
+    throw new Error(`Insufficient USDC balance. You have ${(Number(totalBalance) / 1_000_000).toFixed(2)} USDC but need ${priceInUsdc.toFixed(2)} USDC.`);
+
   const tx = new Transaction();
   tx.setSender(sender);
   tx.setGasPrice(0);
@@ -87,7 +91,12 @@ export async function signAndExecuteTransaction(priceInUsdc) {
     typeArguments: [USDC_COIN_TYPE],
     arguments: [tx.balance({ type: USDC_COIN_TYPE, balance: priceInBaseUnits }), tx.pure.address(PLATFORM_ADDRESS)],
   });
-  const { bytes, signature: userSignature } = await tx.sign({ client, signer: keypair });
+  let bytes, userSignature;
+  try {
+    ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
+  } catch (signErr) {
+    throw new Error(`Transaction build failed: ${signErr.message}`);
+  }
   const partialZkLoginSignature = await zkproverApi.prove({
     jwt: session.id_token, maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
