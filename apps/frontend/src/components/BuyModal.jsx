@@ -93,7 +93,7 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
                 </div>
               )}
               <button
-                onClick={!account ? login : !isSessionActive ? handleReauth : handlePurchase}
+                onClick={() => (!account ? login() : !isSessionActive ? handleReauth() : handlePurchase())}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-[#D89F55] hover:bg-[#f0c57a] disabled:bg-[#51322D] text-[#23120A] disabled:text-[#f3e4cf] font-bold rounded shadow transition duration-150 cursor-pointer text-sm uppercase"
               >
