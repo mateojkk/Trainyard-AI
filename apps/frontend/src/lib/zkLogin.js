@@ -136,9 +136,25 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     jwtRandomness: pending.randomness, salt: saltBigInt.toString(10),
   });
   const addressSeed = genAddressSeed(saltBigInt, "sub", decodedJwt.sub, decodedJwt.aud).toString();
+  
+  const mappedInputs = {
+    proofPoints: {
+      a: partialZkLoginSignature.proofPoints.pi_a,
+      b: partialZkLoginSignature.proofPoints.pi_b,
+      c: partialZkLoginSignature.proofPoints.pi_c,
+    },
+    issBase64Details: {
+      value: partialZkLoginSignature.issBase64Details.value,
+      indexMod4: partialZkLoginSignature.issBase64Details.indexModulusZero,
+    },
+    headerBase64: partialZkLoginSignature.headerBase64,
+    addressSeed,
+  };
+
   const zkLoginSignature = getZkLoginSignature({
-    inputs: { ...partialZkLoginSignature, addressSeed },
-    maxEpoch: Number(pending.maxEpoch), userSignature,
+    inputs: mappedInputs,
+    maxEpoch: Number(pending.maxEpoch),
+    userSignature,
   });
   const result = await client.core.executeTransaction({
     transaction: bytes, signatures: [zkLoginSignature],
