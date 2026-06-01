@@ -161,9 +161,15 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const result = await client.core.executeTransaction({
     transaction: transactionBytes, signatures: [zkLoginSignature],
   });
-  if (!result.status?.success)
-    throw new Error(`Transaction failed: ${result.status?.error?.message || JSON.stringify(result.status?.error) || "Unknown error"}`);
-  return result.digest;
+  console.log("[zkLogin] Transaction execution result:", JSON.stringify(result));
+  
+  const txData = result.Transaction || result.FailedTransaction;
+  if (!txData) throw new Error("Transaction failed: No execution data returned");
+  if (result.$kind === "FailedTransaction" || !txData.status?.success) {
+    const errorMsg = txData.status?.error?.message || JSON.stringify(txData.status?.error) || "Unknown error";
+    throw new Error(`Transaction failed: ${errorMsg}`);
+  }
+  return txData.digest;
 }
 
 async function getMaxEpoch() {
