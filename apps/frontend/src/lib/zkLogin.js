@@ -89,6 +89,15 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const commissionBalance = tx.balance({ type: USDC_COIN_TYPE, balance: commissionAmount });
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [sellerBalance, tx.pure.address(sellerAddress)] });
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)] });
+  
+  // Build and print transaction data for debugging before signing
+  await tx.build({ client });
+  console.log("[zkLogin] Built transaction data:", {
+    expiration: tx.getData().expiration,
+    gasData: tx.getData().gasData,
+    inputs: tx.getData().inputs,
+  });
+
   let bytes, userSignature;
   ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
   const partialZkLoginSignature = await zkproverApi.prove({
