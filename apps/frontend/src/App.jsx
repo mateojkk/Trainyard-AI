@@ -48,7 +48,7 @@ function App() {
     return (
       <div className="min-h-screen bg-[#161313] flex flex-col items-center justify-center text-gray-200">
         <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
-        <p className="text-sm font-semibold font-sans">Processing zkLogin authentication...</p>
+        <p className="text-sm font-medium font-sans text-gray-400">Loading...</p>
       </div>
     );
   }

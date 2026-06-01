@@ -15,11 +15,18 @@ class StripApiPrefix:
         self.wrapped_app = wrapped_app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http" and scope.get("path", "").startswith("/api"):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            print(f"DEBUG: Original path={path}, root_path={scope.get('root_path')}", flush=True)
+            for prefix in ["/api/index.py", "/api/index", "/api"]:
+                if path.startswith(prefix):
+                    path = path[len(prefix):]
+                    break
+            if not path.startswith("/"):
+                path = "/" + path
             scope = dict(scope)
-            path = scope["path"][4:] or "/"
             scope["path"] = path
-            scope["root_path"] = f'{scope.get("root_path", "")}/api'
+            print(f"DEBUG: Rewritten path={path}", flush=True)
         await self.wrapped_app(scope, receive, send)
 
 
