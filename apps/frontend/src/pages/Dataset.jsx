@@ -82,7 +82,7 @@ export default function Dataset() {
         Back to Marketplace
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-start">
         <DatasetInfo dataset={dataset} previewText={previewText} loadingPreview={loadingPreview} />
         <DatasetStats dataset={dataset} onBuyClick={() => setBuyModalOpen(true)} />
       </div>

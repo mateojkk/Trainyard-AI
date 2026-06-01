@@ -40,7 +40,7 @@ export default function Marketplace() {
     <div className="space-y-6">
       {!account ? <LandingFeatures onLogin={login} /> : (
         <>
-          <div className="flex flex-col md:flex-row gap-3 items-center bg-[#242424] p-3 border border-[#3a322f] rounded">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-3 items-center bg-[#242424] p-2 md:p-3 border border-[#3a322f] rounded">
             <div className="relative w-full md:max-w-xs">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="h-4 w-4 text-[#f3e4cf]" /></span>
               <input type="text" placeholder="Search datasets..." value={sq} onChange={(e) => setSq(e.target.value)}
@@ -76,7 +76,7 @@ export default function Marketplace() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {datasets.map((d) => <DatasetCard key={d.id} dataset={d} />)}
               </div>
               <div className="flex items-center justify-between border-t border-[#3a322f] pt-4 mt-6">

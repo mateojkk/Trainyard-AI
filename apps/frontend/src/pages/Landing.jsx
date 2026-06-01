@@ -1,13 +1,16 @@
+import { useState, useEffect } from 'react';
 import { Play, Sparkles } from 'lucide-react';
 import Footer from '../components/Footer';
 import landingBackground from '../assets/landing-background.jpg';
 
 export default function Landing({ onLogin, authError }) {
+  const [bgLoaded, setBgLoaded] = useState(false);
+  useEffect(() => { const img = new Image(); img.onload = () => setBgLoaded(true); img.src = landingBackground; }, [landingBackground]);
   return (
     <>
       <section className="relative w-full min-h-screen sm:h-screen overflow-hidden bg-[#23120A]">
         <div
-          className="landing-bg absolute -inset-8 bg-cover bg-center"
+          className={`landing-bg absolute -inset-8 bg-cover bg-center transition-opacity duration-700 ${bgLoaded ? 'opacity-100' : 'opacity-0'}`}
           style={{ backgroundImage: `url(${landingBackground})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#D89F55]/20 via-transparent to-[#23120A]/25" />
@@ -37,7 +40,7 @@ export default function Landing({ onLogin, authError }) {
         </div>
 
         {/* Bottom-left CTA block */}
-        <div className="absolute left-4 right-4 sm:right-auto sm:left-6 md:left-10 bottom-6 sm:bottom-8 md:bottom-10 z-10 max-w-sm">
+        <div className="absolute left-4 right-4 sm:right-auto sm:left-6 md:left-10 bottom-4 sm:bottom-8 md:bottom-10 z-10 max-w-sm">
           <div className="flex items-center gap-2 text-[#D89F55] mb-3 drop-shadow">
             <Sparkles className="w-4 h-4" /><span className="text-sm font-semibold sm:font-medium">Client-Side Encryption<sup className="text-[10px]">v1</sup></span>
           </div>

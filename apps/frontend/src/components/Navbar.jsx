@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import WalletButton from "./WalletButton";
 import NavbarSearch from "./NavbarSearch";
 import { useZkLogin } from "../context/useZkLogin";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, LayoutGrid } from "lucide-react";
 import styles from "./css/Navbar.module.css";
 
 export default function Navbar() {
@@ -19,14 +19,16 @@ export default function Navbar() {
 
       {account && (
         <div className={styles.links}>
-          <Link to="/" className={`${styles.link} ${isActive("/") ? styles.active : styles.inactive}`}>Browse</Link>
+          <Link to="/" className={`${styles.link} ${isActive("/") ? styles.active : styles.inactive}`}>
+            <LayoutGrid className={styles.linkIcon} /><span className="hidden sm:inline">Browse</span>
+          </Link>
           <Link to="/upload" className={`${styles.link} ${isActive("/upload") ? styles.active : styles.inactive}`}>
-            <UploadCloud className={styles.linkIcon} />Upload
+            <UploadCloud className={styles.linkIcon} /><span className="hidden sm:inline">Upload</span>
           </Link>
         </div>
       )}
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0 sm:gap-1">
         {account && <NavbarSearch />}
         <WalletButton />
       </div>
