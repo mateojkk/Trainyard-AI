@@ -91,4 +91,14 @@ export const profilesApi = {
   },
 };
 
+export const suiRpcApi = {
+  getBalance: async (owner, coinType) => {
+    const r = await API.post("/sui-rpc", {
+      jsonrpc: "2.0", id: 1, method: "suix_getBalance",
+      params: [owner, coinType],
+    });
+    return r.data;
+  },
+};
+
 export default API;
