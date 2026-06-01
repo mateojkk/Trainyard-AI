@@ -19,7 +19,7 @@ const BN254_FIELD = 218882428718392752222464057452572750885483644004160343436982
 const GRAPHQL_URL = "https://graphql.mainnet.sui.io/graphql";
 const client = new SuiGraphQLClient({ url: GRAPHQL_URL });
 
-export async function beginZkLogin() {
+export async function beginZkLogin(customReturnTo) {
   const keypair = Ed25519Keypair.generate();
   const randomness = generateRandomness();
   const maxEpoch = await getMaxEpoch();
@@ -31,7 +31,8 @@ export async function beginZkLogin() {
     extendedEphemeralPublicKey: getExtendedEphemeralPublicKey(keypair.getPublicKey()),
   }, window.sessionStorage);
 
-  const { authorization_url } = await authApi.startGoogle({ nonce, return_to: getReturnToPath() });
+  const returnTo = customReturnTo || getReturnToPath();
+  const { authorization_url } = await authApi.startGoogle({ nonce, return_to: returnTo });
   window.location.assign(authorization_url);
 }
 
@@ -117,6 +118,13 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
 
   let bytes, userSignature;
   ({ bytes, signature: userSignature } = await tx.sign({ client: offlineClient, signer: keypair }));
+  console.log("[zkLogin] Prover request payload:", {
+    maxEpoch: String(pending.maxEpoch),
+    extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
+    jwtRandomness: pending.randomness,
+    salt: saltBigInt.toString(10),
+  });
+
   const partialZkLoginSignature = await zkproverApi.prove({
     jwt: session.id_token, maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
@@ -149,6 +157,10 @@ async function getMaxEpoch() {
 function loadPending() {
   try { const raw = window.sessionStorage.getItem(PENDING_KEY); return raw ? JSON.parse(raw) : null; }
   catch { return null; }
+}
+
+export function hasPendingZkLoginSession() {
+  return !!loadPending();
 }
 
 function getReturnToPath() {
