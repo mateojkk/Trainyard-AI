@@ -13,7 +13,23 @@ const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb06
 
 const BN254_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 if (!SUI_RPC_URL) throw new Error("VITE_SUI_RPC_URL is not set");
+const FALLBACK_RPC = "https://rpc.mainnet.sui.io";
+
 const client = new SuiJsonRpcClient({ url: SUI_RPC_URL, network: "mainnet" });
+const origRequest = client.transport.request.bind(client.transport);
+client.transport.request = async ({ method, params, signal }) => {
+  if (method === "suix_getLatestSuiSystemState") {
+    const resp = await fetch(FALLBACK_RPC, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: [] }),
+      signal,
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.result;
+  }
+  return origRequest({ method, params, signal });
+};
 
 export async function beginZkLogin() {
   const keypair = Ed25519Keypair.generate();
