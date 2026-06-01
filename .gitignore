@@ -28,3 +28,7 @@ apps/backend/.venv/
 .vercel/
 .codex
 .agents
+
+# Mock artifacts (dev only)
+mock_db/
+mock_walrus/

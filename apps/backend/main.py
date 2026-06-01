@@ -10,7 +10,7 @@ load_dotenv(Path(__file__).with_name(".env"))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import connect_db, close_db
-from .routes import datasets, payments, ai, auth
+from .routes import datasets, payments, ai, auth, zkprover, profiles, sui_rpc
 from .services.auth_config import get_frontend_origins
 
 # Setup logging config
@@ -52,6 +52,9 @@ app.include_router(datasets.router, prefix="/datasets", tags=["datasets"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(zkprover.router, prefix="/zkprover", tags=["zkprover"])
+app.include_router(profiles.router, prefix="/profiles", tags=["profiles"])
+app.include_router(sui_rpc.router, prefix="/sui-rpc", tags=["sui-rpc"])
 
 @app.get("/")
 async def root():

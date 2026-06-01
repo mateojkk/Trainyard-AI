@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   beginZkLogin,
   clearZkLoginSession,
   hydrateZkLoginAccount,
+  signAndExecuteTransaction,
 } from "../lib/zkLogin";
 import { ZkLoginContext } from "./useZkLogin";
 
@@ -31,10 +32,16 @@ export function ZkLoginProvider({ children }) {
     };
   }, []);
 
+  const signTx = useCallback(async (priceInUsdc) => {
+    const txDigest = await signAndExecuteTransaction(priceInUsdc);
+    return txDigest;
+  }, []);
+
   const value = useMemo(() => ({
     account,
     loading,
     error,
+    signAndExecuteTransaction: signTx,
     login: async () => {
       setError("");
       try {
@@ -48,7 +55,7 @@ export function ZkLoginProvider({ children }) {
       setAccount(null);
       setError("");
     },
-  }), [account, loading, error]);
+  }), [account, loading, error, signTx]);
 
   return (
     <ZkLoginContext.Provider value={value}>

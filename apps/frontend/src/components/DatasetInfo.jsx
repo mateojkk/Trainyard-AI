@@ -1,4 +1,5 @@
 import { Eye, Shield, Loader2 } from "lucide-react";
+import PreviewRenderer from "./PreviewRenderer";
 import styles from "./css/DatasetInfo.module.css";
 
 const CATEGORY_MAP = {
@@ -17,27 +18,14 @@ export default function DatasetInfo({ dataset, previewText, loadingPreview }) {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.meta}>
-          <span className={`${styles.badge} ${cat.class}`}>
-            {cat.name}
-          </span>
-          <span className={styles.typeBadge}>
-            {dataset.file_type.toUpperCase()}
-          </span>
+          <span className={`${styles.badge} ${cat.class}`}>{cat.name}</span>
+          <span className={styles.typeBadge}>{dataset.file_type.toUpperCase()}</span>
         </div>
-
-        <h1 className={styles.title}>
-          {dataset.title}
-        </h1>
-
-        <p className={styles.desc}>
-          {dataset.description}
-        </p>
-
+        <h1 className={styles.title}>{dataset.title}</h1>
+        <p className={styles.desc}>{dataset.description}</p>
         <div className={styles.tags}>
           {dataset.tags.map((tag, idx) => (
-            <span key={idx} className={styles.tag}>
-              #{tag}
-            </span>
+            <span key={idx} className={styles.tag}>#{tag}</span>
           ))}
         </div>
       </div>
@@ -50,7 +38,6 @@ export default function DatasetInfo({ dataset, previewText, loadingPreview }) {
           </span>
           <span className={styles.previewSub}>Hosted publicly on Walrus</span>
         </div>
-
         <div className={styles.previewBody}>
           {loadingPreview ? (
             <div className={styles.loadingText}>
@@ -58,9 +45,7 @@ export default function DatasetInfo({ dataset, previewText, loadingPreview }) {
               Fetching preview bytes...
             </div>
           ) : (
-            <pre className={styles.previewCode}>
-              {previewText || "No preview data available."}
-            </pre>
+            <PreviewRenderer dataset={dataset} previewText={previewText} />
           )}
         </div>
       </div>

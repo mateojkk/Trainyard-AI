@@ -1,10 +1,12 @@
 import logging
+import secrets
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, field_validator
 
+from ..database import get_db
 from ..services.auth_config import auth_cookie_secure, get_primary_frontend_origin
 from ..services.auth_sessions import (
     SESSION_COOKIE_NAME,
@@ -60,7 +62,17 @@ async def google_callback(request: Request, code: str, state: str):
         redirect_uri = str(request.url_for("google_callback"))
         id_token = await exchange_google_code(code, redirect_uri)
         claims = await verify_google_id_token(id_token, state_payload["nonce"])
-        session = build_session(id_token, claims)
+
+        sub = claims.get("sub", "")
+        client = get_db()
+        salt_response = client.table("salts").select("salt").eq("google_sub", sub).execute()
+        if salt_response.data:
+            salt = salt_response.data[0]["salt"]
+        else:
+            salt = secrets.token_hex(32)
+            client.table("salts").insert({"google_sub": sub, "salt": salt}).execute()
+
+        session = build_session(id_token, claims, salt)
         response = RedirectResponse(url=f"{get_primary_frontend_origin()}{state_payload['return_to']}", status_code=302)
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
@@ -88,6 +100,7 @@ async def me(request: Request):
     return {
         "authenticated": True,
         "id_token": session["id_token"],
+        "salt": session.get("salt", ""),
         "account": {
             "sub": session.get("sub", ""),
             "email": session.get("email", ""),

@@ -21,7 +21,7 @@ export default function Dataset() {
       setLoading(true);
       setError(null);
       try {
-        const data = await datasetsApi.getDataset(id);
+        const data = await datasetsApi.getOne(id);
         setDataset(data);
         
         // Fetch Preview unencrypted text from Walrus
@@ -88,7 +88,7 @@ export default function Dataset() {
       </div>
 
       {buyModalOpen && (
-        <BuyModal dataset={dataset} isOpen={buyModalOpen} onClose={() => setBuyModalOpen(false)} />
+        <BuyModal dataset={dataset} isOpen={buyModalOpen} onClose={() => setBuyModalOpen(false)} previewText={previewText} />
       )}
     </div>
   );

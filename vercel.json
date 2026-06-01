@@ -1,8 +1,12 @@
 {
-  "installCommand": "npm --prefix apps/frontend ci",
+  "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "apps/frontend/dist",
   "rewrites": [
+    {
+      "source": "/api/walrus_upload",
+      "destination": "/api/walrus_upload.js"
+    },
     {
       "source": "/api",
       "destination": "/api/index.py"

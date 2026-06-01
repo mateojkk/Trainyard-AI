@@ -37,7 +37,7 @@ export default function StepChooseFile({
         <span className="text-sm font-bold text-[#fff7ed] block">Drag & drop dataset file here</span>
         <span className="text-xs text-[#d1d5db] block mt-1">or click to browse local files</span>
         <span className="text-[10px] text-[#f3e4cf] block mt-4 font-mono">
-          Accepted formats: All formats supported (max 100MB)
+          Accepted: .zip, .csv, .json, .txt (max 10GB)
         </span>
       </div>
 

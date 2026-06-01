@@ -1,22 +1,16 @@
-import { Routes, Route, Navigate, Link } from "react-router-dom";
+import { Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
 import { useZkLogin } from "./context/useZkLogin";
 import Navbar from "./components/Navbar";
 import Marketplace from "./pages/Marketplace";
 import Upload from "./pages/Upload";
 import Dataset from "./pages/Dataset";
+import Profile from "./pages/Profile";
 import Footer from "./components/Footer";
 import Landing from "./pages/Landing";
-import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 function RequireAuth({ children }) {
-  const { account, loading, error, login } = useZkLogin();
-
-  useEffect(() => {
-    if (!account && !loading && !error) {
-      login();
-    }
-  }, [account, loading, error, login]);
+  const { account, loading, error } = useZkLogin();
 
   if (loading) {
     return (
@@ -40,12 +34,7 @@ function RequireAuth({ children }) {
   }
 
   if (!account) {
-    return (
-      <div className="min-h-screen bg-[#1c1c1c] flex flex-col items-center justify-center text-gray-200">
-        <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
-        <p className="text-sm font-semibold font-sans">Redirecting to zkLogin authentication...</p>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -53,6 +42,7 @@ function RequireAuth({ children }) {
 
 function App() {
   const { account, loading, login, error } = useZkLogin();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -63,7 +53,7 @@ function App() {
     );
   }
 
-  if (!account && window.location.pathname === "/") {
+  if (!account && location.pathname === "/") {
     return <Landing onLogin={login} authError={error} />;
   }
 
@@ -92,6 +82,22 @@ function App() {
             element={
               <RequireAuth>
                 <Dataset />
+              </RequireAuth>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <RequireAuth>
+                <Profile />
+              </RequireAuth>
+            } 
+          />
+          <Route 
+            path="/profile/:username" 
+            element={
+              <RequireAuth>
+                <Profile />
               </RequireAuth>
             } 
           />

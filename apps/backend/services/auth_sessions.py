@@ -66,7 +66,7 @@ async def verify_google_id_token(id_token: str, expected_nonce: str) -> dict:
   return claims
 
 
-def build_session(id_token: str, claims: dict) -> str:
+def build_session(id_token: str, claims: dict, salt: str = "") -> str:
   return sign(
     {
       "id_token": id_token,
@@ -77,6 +77,7 @@ def build_session(id_token: str, claims: dict) -> str:
       "iss": claims.get("iss", ""),
       "aud": claims.get("aud", ""),
       "nonce": claims.get("nonce", ""),
+      "salt": salt,
     },
     SESSION_TTL_SECONDS,
   )

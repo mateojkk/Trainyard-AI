@@ -8,11 +8,10 @@ import App from "./App.jsx";
 import "./index.css";
 import "@mysten/dapp-kit/dist/index.css";
 
-// Setup Network Config using public Sui mainnet node to avoid API key exposure in browser
+const SUI_RPC = import.meta.env.VITE_SUI_RPC_URL;
+if (!SUI_RPC) throw new Error("VITE_SUI_RPC_URL is not set");
 const { networkConfig } = createNetworkConfig({
-  mainnet: {
-    url: "https://fullnode.mainnet.sui.io:443",
-  }
+  mainnet: { url: SUI_RPC }
 });
 
 const queryClient = new QueryClient();

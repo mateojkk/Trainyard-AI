@@ -1,4 +1,4 @@
-import { FileSpreadsheet, Lock, ArrowUpRight, Database, Download } from "lucide-react";
+import { FileSpreadsheet, Lock, ArrowUpRight, Database, Download, User } from "lucide-react";
 import { formatBytes } from "../lib/sui";
 import { PAYMENT_SYMBOL, formatPaymentAmount } from "../lib/payments";
 import styles from "./css/DatasetStats.module.css";
@@ -41,12 +41,29 @@ export default function DatasetStats({ dataset, onBuyClick }) {
             </span>
           </div>
 
-          <div className={styles.detailSection}>
-            <span className={styles.sectionLabel}>Contributor zkLogin Address</span>
-            <span className={styles.sectionVal} title={dataset.seller_address}>
-              {dataset.seller_address}
-            </span>
-          </div>
+          {dataset.seller_profile ? (
+            <div className={styles.detailSection}>
+              <span className={styles.sectionLabel}>Contributor</span>
+              <a href={`/profile/${dataset.seller_profile.username}`} onClick={(e) => { e.preventDefault(); window.location.href = `/profile/${dataset.seller_profile.username}`; }}
+                className="flex items-center gap-2 mt-1 hover:bg-[#2f2f2f] rounded p-1.5 transition no-underline"
+              >
+                {dataset.seller_profile.avatar_url ? (
+                  <img src={dataset.seller_profile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#3a322f]" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-[#3a322f] flex items-center justify-center"><User className="w-3.5 h-3.5 text-gray-400" /></div>
+                )}
+                <div>
+                  <p className="text-xs text-gray-200 font-semibold">{dataset.seller_profile.display_name || dataset.seller_profile.username}</p>
+                  <p className="text-[10px] text-gray-500">@{dataset.seller_profile.username}</p>
+                </div>
+              </a>
+            </div>
+          ) : (
+            <div className={styles.detailSection}>
+              <span className={styles.sectionLabel}>Contributor Address</span>
+              <span className={styles.sectionVal} title={dataset.seller_address}>{dataset.seller_address}</span>
+            </div>
+          )}
         </div>
       </div>
 

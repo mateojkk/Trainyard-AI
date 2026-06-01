@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileCode, Download } from "lucide-react";
 import { truncateAddress, formatBytes } from "../lib/sui";
@@ -13,7 +14,7 @@ const CATEGORY_MAP = {
   other: { name: "Other", class: styles.otherCategory },
 };
 
-export default function DatasetCard({ dataset }) {
+const DatasetCard = memo(function DatasetCard({ dataset }) {
   const navigate = useNavigate();
   const cat = CATEGORY_MAP[dataset.category?.toLowerCase()] || CATEGORY_MAP.other;
 
@@ -75,4 +76,6 @@ export default function DatasetCard({ dataset }) {
       </div>
     </div>
   );
-}
+});
+
+export default DatasetCard;

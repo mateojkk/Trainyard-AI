@@ -1,4 +1,5 @@
 import { Loader2, Sparkles, Database, Info, Lock } from "lucide-react";
+const CATEGORY_GUIDELINES = {vision:".zip: images + annotation .json/.csv inside",audio:".zip: audio + transcript .csv inside",nlp:".txt, .csv, or .json — text/corpus data",tabular:".csv — structured labeled data",multimodal:".zip: images, text, audio",other:".zip, .csv, .json, .txt"};
 
 export default function StepMetadataForm({
   file,
@@ -81,6 +82,7 @@ export default function StepMetadataForm({
                 <option value="multimodal">Multimodal (RAG / Embeddings)</option>
                 <option value="other">Other / Custom</option>
               </select>
+              <p className="text-[10px] text-[#e7c88f] mt-1">{CATEGORY_GUIDELINES[metadata.category]}</p>
             </div>
 
             <div className="space-y-1.5">

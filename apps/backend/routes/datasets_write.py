@@ -1,24 +1,50 @@
 import json
 import logging
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Request
 from ..database import get_db
 from ..services import walrus as walrus_service
+from ..services.auth_sessions import read_session, SESSION_COOKIE_NAME
 
 logger = logging.getLogger("datasets_write")
 router = APIRouter()
 
+ALLOWED_TYPES = {"zip", "csv", "json", "txt"}
+
+def _session(request):
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token: raise HTTPException(status_code=401, detail="Not authenticated")
+    s = read_session(token)
+    if not s or not s.get("sub"): raise HTTPException(status_code=401, detail="Invalid session")
+    return s
+
 @router.post("/upload-blob")
-async def upload_blob(file: UploadFile = File(...)):
+async def upload_blob(request: Request, file: UploadFile = File(...)):
     """
     Receives encrypted bytes from the client and uploads them to Walrus.
     """
     try:
+        content_length = request.headers.get("content-length")
+        MAX_SIZE = 10 * 1024 * 1024 * 1024  # 10 GB
+        if content_length and int(content_length) > MAX_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+            
+        ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+        if ext not in ALLOWED_TYPES:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type '.{ext}'. Accepted: {', '.join(sorted(ALLOWED_TYPES))}")
+            
+        if getattr(file, "size", None) is not None and file.size > MAX_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+            
         data = await file.read()
         if not data:
             raise HTTPException(status_code=400, detail="Empty file upload")
             
+        if len(data) > MAX_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+            
         logger.info(f"Received file upload '{file.filename}' of size {len(data)} bytes.")
-        blob_id = await walrus_service.upload_blob(data)
+        base_url = str(request.base_url)
+        blob_id = await walrus_service.upload_blob(data, base_url=base_url)
         
         return {
             "blob_id": blob_id,
@@ -32,7 +58,7 @@ async def upload_blob(file: UploadFile = File(...)):
         )
 
 @router.post("/upload-preview")
-async def upload_preview(preview: str = Form(...)):
+async def upload_preview(request: Request, preview: str = Form(...)):
     """
     Receives the unencrypted preview text from the client and uploads it to Walrus.
     """
@@ -42,7 +68,8 @@ async def upload_preview(preview: str = Form(...)):
             
         preview_bytes = preview.encode("utf-8")
         logger.info(f"Received preview text of size {len(preview_bytes)} bytes.")
-        blob_id = await walrus_service.upload_blob(preview_bytes)
+        base_url = str(request.base_url)
+        blob_id = await walrus_service.upload_blob(preview_bytes, base_url=base_url)
         
         return {
             "blob_id": blob_id
@@ -56,6 +83,7 @@ async def upload_preview(preview: str = Form(...)):
 
 @router.post("/create")
 async def create_listing(
+    request: Request,
     title: str = Form(...),
     description: str = Form(...),
     category: str = Form(...),
@@ -78,12 +106,21 @@ async def create_listing(
         raise HTTPException(status_code=500, detail="Database not initialized")
 
     try:
+        MAX_SIZE = 10 * 1024 * 1024 * 1024  # 10 GB
+        if int(file_size_bytes) > MAX_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+
         try:
             parsed_tags = json.loads(tags)
             if not isinstance(parsed_tags, list):
                 parsed_tags = [tags]
         except Exception:
             parsed_tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+        if file_type not in ALLOWED_TYPES:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type '{file_type}'. Accepted: {', '.join(sorted(ALLOWED_TYPES))}")
+        session = _session(request)
+        seller_sub = session["sub"]
 
         listing = {
             "title": title,
@@ -98,7 +135,8 @@ async def create_listing(
             "file_size_bytes": int(file_size_bytes),
             "file_type": file_type,
             "tags": parsed_tags,
-            "walrus_explorer_url": f"https://walruscan.com/mainnet/blob/{blob_id}"
+            "walrus_explorer_url": f"https://walruscan.com/mainnet/blob/{blob_id}",
+            "seller_sub": seller_sub,
         }
 
         # Insert metadata listing record

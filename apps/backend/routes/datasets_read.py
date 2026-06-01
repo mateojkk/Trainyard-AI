@@ -1,8 +1,6 @@
-import os
 import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
 from ..database import get_db
 
 logger = logging.getLogger("datasets_read")
@@ -57,20 +55,21 @@ async def get_dataset(dataset_id: str):
         response = client.table("datasets").select("*").eq("id", dataset_id).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Dataset listing not found")
-        return response.data[0]
+        result = response.data[0]
+        seller_sub = result.get("seller_sub", "")
+        if seller_sub:
+            try:
+                pr = client.table("profiles").select("username,display_name,avatar_url,google_sub").eq("google_sub", seller_sub).execute()
+                result["seller_profile"] = pr.data[0] if pr.data else None
+            except:
+                result["seller_profile"] = None
+        else:
+            result["seller_profile"] = None
+        return result
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error retrieving dataset {dataset_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database fetch failed: {str(e)}")
 
-@router.get("/mock-blob/{blob_id}")
-async def get_mock_blob(blob_id: str):
-    """
-    Serves saved mock dataset files locally for testing download/decryption.
-    """
-    mock_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mock_walrus")
-    file_path = os.path.join(mock_dir, blob_id)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Mock blob not found")
-    return FileResponse(file_path, media_type="application/octet-stream")
+

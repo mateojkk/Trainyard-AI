@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useZkLogin } from "../context/useZkLogin";
 import { datasetsApi, aiApi } from "../lib/api";
 import { generateKey, encryptFile } from "../lib/crypto";
+import { generateFingerprintAndPreview } from "../lib/fingerprint";
 import StepChooseFile from "../components/upload/StepChooseFile";
 import StepMetadataForm from "../components/upload/StepMetadataForm";
 import StepProgressTracker from "../components/upload/StepProgressTracker";
 import StepSuccess from "../components/upload/StepSuccess";
 import { ChevronRight } from "lucide-react";
+
+const ALLOWED_EXTENSIONS = ["zip", "csv", "json", "txt"];
 
 export default function Upload() {
   const { account } = useZkLogin();
@@ -17,8 +20,8 @@ export default function Upload() {
   const [step, setStep] = useState(0);
   const [file, setFile] = useState(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [statsAndPreview, setStatsAndPreview] = useState(null);
   const [metadata, setMetadata] = useState({ title: "", description: "", category: "nlp", price_sui: 0.1, tags: "" });
-  
   const [uploadSteps, setUploadSteps] = useState([
     { id: 0, label: "Encrypting dataset locally", status: "idle" },
     { id: 1, label: "Uploading encrypted data to Walrus", status: "idle" },
@@ -30,9 +33,20 @@ export default function Upload() {
   const [result, setResult] = useState(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedBlob, setCopiedBlob] = useState(false);
-
+  
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10 GB
+  
   const processFile = (selectedFile) => {
     setError(null);
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      setError("File size exceeds the 10GB limit.");
+      return;
+    }
+    const ext = selectedFile.name.includes(".") ? selectedFile.name.split(".").pop().toLowerCase() : "";
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setError(`Unsupported file type ".${ext}". Accepted: .zip, .csv, .json, .txt`);
+      return;
+    }
     setFile(selectedFile);
     const defaultTitle = selectedFile.name.split(".")[0].replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     setMetadata((p) => ({ ...p, title: defaultTitle }));
@@ -43,21 +57,20 @@ export default function Upload() {
     setStep(1);
     setLoadingAi(true);
     try {
-      const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
-      const TEXT_EXTENSIONS = ["csv", "json", "txt", "tsv", "xml", "yaml", "yml", "md", "py", "js", "html", "css", "ini", "cfg", "conf", "sql"];
-      let previewText = "";
+      const parsedStats = await generateFingerprintAndPreview(file);
+      setStatsAndPreview(parsedStats);
 
-      if (TEXT_EXTENSIONS.includes(ext) || file.type.startsWith("text/")) {
-        previewText = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result.slice(0, 500));
-          reader.readAsText(file.slice(0, 1000));
-        });
+      let aiPreview = "";
+      if (parsedStats.type === "csv") {
+        aiPreview = [parsedStats.csvHeaders.join(","), ...parsedStats.csvRows.map(r => r.join(","))].join("\n");
+      } else if (parsedStats.type === "zip") {
+        aiPreview = `ZIP file with total files: ${parsedStats.totalFiles}. Extensions: ${JSON.stringify(parsedStats.fingerprint.extensionBreakdown)}`;
       } else {
-        previewText = `Binary payload metadata for package '${file.name}'. Contains encrypted binary features.`;
+        aiPreview = parsedStats.content || "";
       }
 
-      const aiData = await aiApi.describe({ file_name: file.name, file_type: ext, file_size_bytes: file.size, category: metadata.category, preview_text: previewText });
+      const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "";
+      const aiData = await aiApi.describe({ file_name: file.name, file_type: ext, file_size_bytes: file.size, category: metadata.category, preview_text: aiPreview.slice(0, 500) });
       setMetadata((p) => ({ ...p, title: aiData.suggested_title || p.title, description: aiData.description || p.description, tags: aiData.tags ? aiData.tags.join(", ") : p.tags }));
     } catch (err) {
       console.error(err);
@@ -67,7 +80,7 @@ export default function Upload() {
   };
 
   const handleUploadAndStore = async () => {
-    if (!account) return setError("Please sign in with zkLogin to proceed.");
+    if (!account) return setError("Please sign in to proceed.");
     setError(null);
     setStep(2);
 
@@ -76,7 +89,7 @@ export default function Upload() {
     };
 
     try {
-      const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
+      const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "";
       
       updateStatus(0, "loading");
       const { keyBase64 } = await generateKey();
@@ -88,24 +101,12 @@ export default function Upload() {
       updateStatus(1, "done");
 
       updateStatus(2, "loading");
-      let previewText = "";
-      const TEXT_EXTENSIONS = ["csv", "json", "txt", "tsv", "xml", "yaml", "yml", "md", "py", "js", "html", "css", "ini", "cfg", "conf", "sql"];
-      if (TEXT_EXTENSIONS.includes(ext) || file.type.startsWith("text/")) {
-        previewText = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result.slice(0, 500));
-          reader.readAsText(file.slice(0, 500));
-        });
-      } else {
-        previewText = `Binary payload metadata for package '${file.name}'. Contains encrypted binary features.`;
-      }
-      const uploadPreviewRes = await datasetsApi.uploadPreview(previewText);
-      const previewBlobId = uploadPreviewRes.blob_id;
+      const uploadPreviewRes = await datasetsApi.uploadPreview(JSON.stringify(statsAndPreview));
       updateStatus(2, "done");
 
       updateStatus(3, "loading");
       const tagList = metadata.tags.split(",").map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0);
-      const listingResult = await datasetsApi.createListing({ title: metadata.title, description: metadata.description, category: metadata.category, price_sui: metadata.price_sui, seller_address: account.address, iv: iv, blob_id: uploadBlobRes.blob_id, preview_blob_id: previewBlobId, file_name: file.name, file_size_bytes: file.size, file_type: ext, tags: JSON.stringify(tagList), key_base64: keyBase64 });
+      const listingResult = await datasetsApi.createListing({ title: metadata.title, description: metadata.description, category: metadata.category, price_sui: metadata.price_sui, seller_address: account.address, iv: iv, blob_id: uploadBlobRes.blob_id, preview_blob_id: uploadPreviewRes.blob_id, file_name: file.name, file_size_bytes: file.size, file_type: ext, tags: JSON.stringify(tagList), key_base64: keyBase64 });
       updateStatus(3, "done");
       
       listingResult.key_base64 = keyBase64;

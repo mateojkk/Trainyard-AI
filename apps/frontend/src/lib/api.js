@@ -9,15 +9,10 @@ const API_URL =
 const API = axios.create({
   baseURL: API_URL,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
 export const datasetsApi = {
-  /**
-   * Fetches paginated datasets with optional category and search filters.
-   */
   getList: async (category = "", search = "", page = 1, limit = 12) => {
     const params = { page, limit };
     if (category) params.category = category;
@@ -25,98 +20,74 @@ export const datasetsApi = {
     const response = await API.get("/datasets", { params });
     return response.data;
   },
-
-  /**
-   * Fetches a single dataset details by its ID.
-   */
-  getOne: async (id) => {
-    const response = await API.get(`/datasets/${id}`);
-    return response.data;
-  },
-
-  /**
-   * Uploads an encrypted file (Blob) to the server.
-   */
+  getOne: async (id) => { const r = await API.get(`/datasets/${id}`); return r.data; },
   uploadBlob: async (encryptedBlob, fileName) => {
     const formData = new FormData();
     formData.append("file", encryptedBlob, fileName);
-    const response = await API.post("/datasets/upload-blob", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      timeout: 120000, // Large timeout for file uploads
+    const r = await API.post("/datasets/upload-blob", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120000,
     });
-    return response.data;
+    return r.data;
   },
-
-  /**
-   * Uploads the plaintext preview text of a dataset.
-   */
   uploadPreview: async (previewText) => {
     const formData = new FormData();
     formData.append("preview", previewText);
-    const response = await API.post("/datasets/upload-preview", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+    const r = await API.post("/datasets/upload-preview", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
-    return response.data;
+    return r.data;
   },
-
-  /**
-   * Creates a dataset listing entry in the database.
-   */
   createListing: async (listingData) => {
     const formData = new FormData();
-    Object.entries(listingData).forEach(([key, value]) => {
-      formData.append(key, value);
+    Object.entries(listingData).forEach(([key, value]) => formData.append(key, value));
+    const r = await API.post("/datasets/create", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
-    const response = await API.post("/datasets/create", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
+    return r.data;
   },
 };
 
 export const paymentsApi = {
-  /**
-   * Verifies the Sui USDC transaction digest and retrieves the dataset decryption key.
-   */
   verify: async (datasetId, buyerAddress, txDigest, blobId) => {
-    const response = await API.post("/payments/verify", {
-      dataset_id: datasetId,
-      buyer_address: buyerAddress,
-      tx_digest: txDigest,
-      blob_id: blobId,
+    const r = await API.post("/payments/verify", {
+      dataset_id: datasetId, buyer_address: buyerAddress,
+      tx_digest: txDigest, blob_id: blobId,
     });
-    return response.data;
+    return r.data;
   },
 };
 
 export const aiApi = {
-  /**
-   * Auto-describes a dataset based on filename and preview text.
-   */
-  describe: async (fileInfo) => {
-    const response = await API.post("/ai/describe", fileInfo);
-    return response.data;
-  },
+  describe: async (fileInfo) => { const r = await API.post("/ai/describe", fileInfo); return r.data; },
 };
 
 export const authApi = {
-  startGoogle: async (payload) => {
-    const response = await API.post("/auth/google/start", payload);
-    return response.data;
-  },
-  me: async () => {
-    const response = await API.get("/auth/me");
-    return response.data;
-  },
-  logout: async () => {
-    const response = await API.post("/auth/logout", {});
-    return response.data;
+  startGoogle: async (payload) => { const r = await API.post("/auth/google/start", payload); return r.data; },
+  me: async () => { const r = await API.get("/auth/me"); return r.data; },
+  logout: async () => { const r = await API.post("/auth/logout", {}); return r.data; },
+};
+
+export const zkproverApi = {
+  prove: async (params) => { const r = await API.post("/zkprover/prove", params); return r.data; },
+};
+
+const e = (s) => encodeURIComponent(s);
+
+export const profilesApi = {
+  getMyProfile: async () => { const r = await API.get("/profiles/me"); return r.data; },
+  updateMyProfile: async (data) => { const r = await API.post("/profiles/me", data); return r.data; },
+  getProfile: async (u) => { const r = await API.get(`/profiles/${e(u)}`); return r.data; },
+  searchProfiles: async (q) => { const r = await API.get("/profiles/search", { params: { q } }); return r.data; },
+  getProfileDatasets: async (u) => { const r = await API.get(`/profiles/${e(u)}/datasets`); return r.data; },
+  follow: async (u) => { const r = await API.post(`/profiles/${e(u)}/follow`); return r.data; },
+  unfollow: async (u) => { const r = await API.post(`/profiles/${e(u)}/unfollow`); return r.data; },
+  getFollowers: async (u) => { const r = await API.get(`/profiles/${e(u)}/followers`); return r.data; },
+  getFollowing: async (u) => { const r = await API.get(`/profiles/${e(u)}/following`); return r.data; },
+  uploadAvatar: async (file) => {
+    const fd = new FormData(); fd.append("file", file);
+    const r = await API.post("/profiles/avatar", fd, { headers: { "Content-Type": "multipart/form-data" } });
+    return r.data;
   },
 };
 

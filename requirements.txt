@@ -1,1 +1,7 @@
--r apps/backend/requirements.txt
+fastapi==0.111.0
+uvicorn==0.30.1
+supabase==2.30.1
+httpx==0.27.0
+python-dotenv==1.0.1
+python-multipart==0.0.9
+pycryptodome==3.20.0
