@@ -130,7 +130,7 @@ export default function WalletButton() {
               </>
             ) : (
               <>
-                <p className="text-xs text-gray-500 mb-4 font-sans">Import this key into any Sui wallet. Keep it secret — anyone with it controls your funds.</p>
+                <p className="text-xs text-gray-500 mb-4 font-sans">Import this key into any Sui wallet. Keep it secret, as anyone with it controls your funds.</p>
                 <div className="bg-[#1c1c1c] border border-[#3a322f] rounded p-3 mb-4">
                   <p className="text-xs font-mono break-all text-gray-300">{exportState.revealed ? exportState.key : exportState.key.slice(0, 12) + "••••••••••••••••"}</p>
                 </div>

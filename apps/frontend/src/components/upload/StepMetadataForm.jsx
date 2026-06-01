@@ -1,5 +1,5 @@
 import { Loader2, Sparkles, Database, Info, Lock } from "lucide-react";
-const CATEGORY_GUIDELINES = {vision:".zip: images + annotation .json/.csv inside",audio:".zip: audio + transcript .csv inside",nlp:".txt, .csv, or .json — text/corpus data",tabular:".csv — structured labeled data",multimodal:".zip: images, text, audio",other:".zip, .csv, .json, .txt"};
+const CATEGORY_GUIDELINES = {vision:".zip: images + annotation .json/.csv inside",audio:".zip: audio + transcript .csv inside",nlp:".txt, .csv, or .json (text/corpus data)",tabular:".csv — structured labeled data",multimodal:".zip: images, text, audio",other:".zip, .csv, .json, .txt"};
 
 export default function StepMetadataForm({
   file,

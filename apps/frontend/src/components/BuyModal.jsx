@@ -75,12 +75,12 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
               <div className="bg-[#1f1f1f] border border-[#3a322f] rounded p-4 flex justify-between items-center">
                 <div>
                   <span className="text-xs text-[#f3e4cf] block font-semibold uppercase">Total Price</span>
-                  <span className="text-xs text-[#d1d5db] block leading-tight">Includes 5% fee — gasless</span>
+                  <span className="text-xs text-[#d1d5db] block leading-tight">Includes 5% fee, gasless</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-brand-blue font-sans flex items-center gap-1.5">{formatPaymentAmount(dataset.price_sui)} <span className="text-xs text-gray-400 font-normal">{PAYMENT_SYMBOL}</span></div>
               </div>
               <div className="bg-[#1f1f1f] border border-[#3a322f] rounded p-3 text-xs text-[#f3e4cf] leading-relaxed">
-                You are about to send <strong>{formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</strong> — <strong>95% to the creator</strong> and <strong>5% platform fee</strong>. Uses Sui's <strong>gasless stablecoin transfer</strong> protocol — no gas fees, no SUI required.
+                You are about to send <strong>{formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</strong> (<strong>95% to the creator</strong> and <strong>5% platform fee</strong>). Uses Sui's <strong>gasless stablecoin transfer</strong> protocol with no gas fees and no SUI required.
               </div>
               {loading && <div className="flex items-center gap-3 bg-[#1f1f1f] p-3 border border-[#3a322f] rounded text-xs text-[#f3e4cf] font-mono"><Loader2 className="w-4 h-4 text-brand-blue animate-spin flex-shrink-0" /><span>{statusStep}</span></div>}
               {error && <div className="flex items-start gap-2 bg-red-950/10 border border-red-900/30 p-3 rounded text-xs text-red-400"><ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" /><span>{error}</span></div>}
