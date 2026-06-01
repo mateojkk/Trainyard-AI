@@ -4,11 +4,13 @@ import {
   clearZkLoginSession,
   hydrateZkLoginAccount,
   signAndExecuteTransaction,
+  hasPendingZkLoginSession,
 } from "../lib/zkLogin";
 import { ZkLoginContext } from "./useZkLogin";
 
 export function ZkLoginProvider({ children }) {
   const [account, setAccount] = useState(null);
+  const [isSessionActive, setIsSessionActive] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const loggedOutRef = useRef(false);
@@ -23,7 +25,10 @@ export function ZkLoginProvider({ children }) {
       }
       try {
         const sessionAccount = await hydrateZkLoginAccount();
-        if (mounted) setAccount(sessionAccount);
+        if (mounted) {
+          setAccount(sessionAccount);
+          setIsSessionActive(!!sessionAccount && hasPendingZkLoginSession());
+        }
       } catch (err) {
         if (mounted && err?.response?.status !== 401) setError(err.message || "zkLogin failed.");
       } finally {
@@ -42,13 +47,14 @@ export function ZkLoginProvider({ children }) {
 
   const value = useMemo(() => ({
     account,
+    isSessionActive,
     loading,
     error,
     signAndExecuteTransaction: signTx,
-    login: async () => {
+    login: async (customReturnTo) => {
       setError("");
       try {
-        await beginZkLogin();
+        await beginZkLogin(customReturnTo);
       } catch (err) {
         setError(err.message || "Unable to start zkLogin.");
       }
@@ -57,9 +63,10 @@ export function ZkLoginProvider({ children }) {
       loggedOutRef.current = true;
       try { await clearZkLoginSession(); } catch {}
       setAccount(null);
+      setIsSessionActive(false);
       setError("");
     },
-  }), [account, loading, error, signTx]);
+  }), [account, isSessionActive, loading, error, signTx]);
 
   return (
     <ZkLoginContext.Provider value={value}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { datasetsApi } from "../lib/api";
 import { fetchPreview } from "../lib/walrus";
 import DatasetInfo from "../components/DatasetInfo";
@@ -9,12 +9,22 @@ import { ArrowLeft, Info } from "lucide-react";
 
 export default function Dataset() {
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dataset, setDataset] = useState(null);
   const [previewText, setPreviewText] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [error, setError] = useState(null);
   const [buyModalOpen, setBuyModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("buy") === "true") {
+      setBuyModalOpen(true);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("buy");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     async function loadDataset() {

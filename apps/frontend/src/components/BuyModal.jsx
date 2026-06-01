@@ -9,7 +9,7 @@ import BuyModalSuccess from "./BuyModalSuccess";
 import { Loader2, ShieldAlert, KeyRound, CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
-  const { account, signAndExecuteTransaction } = useZkLogin();
+  const { account, isSessionActive, login, signAndExecuteTransaction } = useZkLogin();
   const [loading, setLoading] = useState(false);
   const [statusStep, setStatusStep] = useState("");
   const [success, setSuccess] = useState(false);
@@ -17,6 +17,13 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
   const [decryptionKey, setDecryptionKey] = useState("");
   const [verificationResult, setVerificationResult] = useState(null);
   if (!isOpen) return null;
+
+  const handleReauth = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("buy", "true");
+    const returnTo = `${window.location.pathname}?${params.toString()}`;
+    login(returnTo);
+  };
 
   const handlePurchase = async () => {
     if (!account) return;
@@ -46,7 +53,7 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      setError(err.message || `Failed to complete ${PAYMENT_SYMBOL} purchase.`);
+      setError(err.response?.data?.detail || err.message || `Failed to complete ${PAYMENT_SYMBOL} purchase.`);
     } finally { setLoading(false); }
   };
 
@@ -77,8 +84,26 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
               </div>
               {loading && <div className="flex items-center gap-3 bg-[#1f1f1f] p-3 border border-[#3a322f] rounded text-xs text-[#f3e4cf] font-mono"><Loader2 className="w-4 h-4 text-brand-blue animate-spin flex-shrink-0" /><span>{statusStep}</span></div>}
               {error && <div className="flex items-start gap-2 bg-red-950/10 border border-red-900/30 p-3 rounded text-xs text-red-400"><ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" /><span>{error}</span></div>}
-              <button onClick={handlePurchase} disabled={loading || !account} className="w-full flex items-center justify-center gap-2 py-3 bg-[#D89F55] hover:bg-[#f0c57a] disabled:bg-[#51322D] text-[#23120A] disabled:text-[#f3e4cf] font-bold rounded shadow transition duration-150 cursor-pointer text-sm uppercase">
-                {!account ? <><KeyRound className="w-4 h-4" />Sign in with zkLogin</> : <><CreditCard className="w-4 h-4" />Pay {formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</>}
+              {account && !isSessionActive && (
+                <div className="flex items-start gap-2 bg-yellow-950/10 border border-yellow-900/30 p-3 rounded text-xs text-yellow-400 font-sans leading-relaxed">
+                  <AlertTriangle className="w-4.5 h-4.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Your transaction session has expired. To complete this purchase, please sign in again with Google to re-authenticate.
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={!account ? login : !isSessionActive ? handleReauth : handlePurchase}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[#D89F55] hover:bg-[#f0c57a] disabled:bg-[#51322D] text-[#23120A] disabled:text-[#f3e4cf] font-bold rounded shadow transition duration-150 cursor-pointer text-sm uppercase"
+              >
+                {!account ? (
+                  <><KeyRound className="w-4 h-4" />Sign in with zkLogin</>
+                ) : !isSessionActive ? (
+                  <><KeyRound className="w-4 h-4" />Re-authenticate to Pay</>
+                ) : (
+                  <><CreditCard className="w-4 h-4" />Pay {formatPaymentAmount(dataset.price_sui)} {PAYMENT_SYMBOL}</>
+                )}
               </button>
             </>
           ) : (

@@ -113,7 +113,7 @@ export default function Upload() {
       setResult(listingResult);
       setStep(3);
     } catch (err) {
-      setError(err.message || "Failed to complete upload pipeline.");
+      setError(err.response?.data?.detail || err.message || "Failed to complete upload pipeline.");
       setUploadSteps((prev) => prev.map((s) => ({ ...s, status: "idle" })));
       setStep(1);
     }

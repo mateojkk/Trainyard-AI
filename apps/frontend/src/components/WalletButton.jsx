@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useZkLogin } from "../context/useZkLogin";
 import { profilesApi, suiRpcApi } from "../lib/api";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
-import { LogOut, ChevronDown, KeyRound, Copy, Check, User, Wallet, Eye, EyeOff } from "lucide-react";
+import { LogOut, ChevronDown, KeyRound, Copy, Check, User, Wallet, Eye, EyeOff, AlertTriangle } from "lucide-react";
 
 const PENDING_KEY = "trainyard.zklogin.pending";
 const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
@@ -13,8 +13,8 @@ export default function WalletButton() {
   const [copied, setCopied] = useState(false);
   const [profile, setProfile] = useState(null);
   const [balance, setBalance] = useState(null);
-  const [exportState, setExportState] = useState({ open: false, key: "", revealed: false, copied: false });
-  const { account, error, login, logout } = useZkLogin();
+  const [exportState, setExportState] = useState({ open: false, key: "", error: "", revealed: false, copied: false });
+  const { account, isSessionActive, error, login, logout } = useZkLogin();
   const fetched = useRef(false);
 
   useEffect(() => {
@@ -44,9 +44,12 @@ export default function WalletButton() {
   const handleExport = () => {
     try {
       const raw = window.sessionStorage.getItem(PENDING_KEY);
-      if (!raw) return;
+      if (!raw) {
+        setExportState({ open: true, key: "", error: "No active transaction session. Please sign in again to re-enable key export.", revealed: false, copied: false });
+        return;
+      }
       const keypair = Ed25519Keypair.fromSecretKey(JSON.parse(raw).secretKey);
-      setExportState({ open: true, key: keypair.getSecretKey(), revealed: false, copied: false });
+      setExportState({ open: true, key: keypair.getSecretKey(), error: "", revealed: false, copied: false });
     } catch (e) { console.error("Export key failed:", e); }
   };
 
@@ -83,6 +86,15 @@ export default function WalletButton() {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
           <div className="absolute right-0 mt-2 w-64 bg-[#242424] border border-[#3a322f] rounded-md shadow-xl z-20 overflow-hidden">
+            {!isSessionActive && (
+              <div className="px-4 py-2.5 bg-yellow-950/20 border-b border-[#3a322f] text-xs text-yellow-400/90 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-yellow-300">Transaction session expired.</span>
+                  <button onClick={() => { setShowDropdown(false); login(); }} className="text-[#e7c88f] hover:underline block mt-1 text-[10px] font-semibold text-left bg-transparent border-0 p-0 cursor-pointer">Sign in again to transact</button>
+                </div>
+              </div>
+            )}
             <div className="px-4 py-3 border-b border-[#3a322f]">
               <p className="text-xs text-gray-500 font-mono break-all">{account.address}</p>
               <div className="flex items-center gap-3 mt-1.5">
@@ -105,19 +117,34 @@ export default function WalletButton() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setExportState(s => ({ ...s, open: false }))}>
           <div className="bg-[#242424] border border-[#3a322f] rounded-lg shadow-xl w-full max-w-md mx-4 p-5" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-gray-200 mb-2">Export Private Key</h3>
-            <p className="text-xs text-gray-500 mb-4">Import this key into any Sui wallet. Keep it secret — anyone with it controls your funds.</p>
-            <div className="bg-[#1c1c1c] border border-[#3a322f] rounded p-3 mb-4">
-              <p className="text-xs font-mono break-all text-gray-300">{exportState.revealed ? exportState.key : exportState.key.slice(0, 12) + "••••••••••••••••"}</p>
-            </div>
-            <div className="flex items-center gap-2 justify-end">
-              <button onClick={toggleReveal} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border border-[#3a322f] rounded">
-                {exportState.revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}{exportState.revealed ? "Hide" : "Reveal"}
-              </button>
-              <button onClick={copyKey} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold cursor-pointer transition border-0">
-                {exportState.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{exportState.copied ? "Copied" : "Copy"}
-              </button>
-              <button onClick={() => setExportState(s => ({ ...s, open: false }))} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border-0">Close</button>
-            </div>
+            {exportState.error ? (
+              <>
+                <div className="flex items-start gap-2 bg-yellow-950/10 border border-yellow-900/30 p-3 rounded text-xs text-yellow-400 mb-4 font-sans leading-relaxed">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                  <span>{exportState.error}</span>
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <button onClick={() => { setExportState(s => ({ ...s, open: false })); login(); }} className="px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold cursor-pointer transition border-0">Sign In Again</button>
+                  <button onClick={() => setExportState(s => ({ ...s, open: false }))} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border-0">Close</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500 mb-4 font-sans">Import this key into any Sui wallet. Keep it secret — anyone with it controls your funds.</p>
+                <div className="bg-[#1c1c1c] border border-[#3a322f] rounded p-3 mb-4">
+                  <p className="text-xs font-mono break-all text-gray-300">{exportState.revealed ? exportState.key : exportState.key.slice(0, 12) + "••••••••••••••••"}</p>
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <button onClick={toggleReveal} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border border-[#3a322f] rounded">
+                    {exportState.revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}{exportState.revealed ? "Hide" : "Reveal"}
+                  </button>
+                  <button onClick={copyKey} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold cursor-pointer transition border-0">
+                    {exportState.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{exportState.copied ? "Copied" : "Copy"}
+                  </button>
+                  <button onClick={() => setExportState(s => ({ ...s, open: false }))} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border-0">Close</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

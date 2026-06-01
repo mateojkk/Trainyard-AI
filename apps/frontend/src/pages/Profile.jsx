@@ -52,7 +52,7 @@ export default function Profile() {
       }
     } catch (err) {
       if (err?.response?.status === 404) setError("Profile not found");
-      else setError(err.message || "Failed to load profile");
+      else setError(err.response?.data?.detail || err.message || "Failed to load profile");
     } finally {
       setLoading(false);
     }
