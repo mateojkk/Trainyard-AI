@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beginZkLogin,
   clearZkLoginSession,
@@ -11,11 +11,16 @@ export function ZkLoginProvider({ children }) {
   const [account, setAccount] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const loggedOutRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadSession() {
+      if (loggedOutRef.current) {
+        if (mounted) setLoading(false);
+        return;
+      }
       try {
         const sessionAccount = await hydrateZkLoginAccount();
         if (mounted) setAccount(sessionAccount);
@@ -27,9 +32,7 @@ export function ZkLoginProvider({ children }) {
     }
 
     loadSession();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const signTx = useCallback(async (priceInUsdc) => {
@@ -50,8 +53,9 @@ export function ZkLoginProvider({ children }) {
         setError(err.message || "Unable to start zkLogin.");
       }
     },
-    logout: () => {
-      clearZkLoginSession();
+    logout: async () => {
+      loggedOutRef.current = true;
+      try { await clearZkLoginSession(); } catch {}
       setAccount(null);
       setError("");
     },

@@ -7,18 +7,13 @@ import Dataset from "./pages/Dataset";
 import Profile from "./pages/Profile";
 import Footer from "./components/Footer";
 import Landing from "./pages/Landing";
-import { Loader2 } from "lucide-react";
+import CenteredProgress from "./components/CenteredProgress";
 
 function RequireAuth({ children }) {
   const { account, loading, error } = useZkLogin();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#1c1c1c] flex flex-col items-center justify-center text-gray-200">
-        <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
-        <p className="text-sm font-semibold font-sans">Processing zkLogin authentication...</p>
-      </div>
-    );
+    return <CenteredProgress text="Processing zkLogin authentication..." />;
   }
 
   if (error) {
@@ -45,12 +40,7 @@ function App() {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#161313] flex flex-col items-center justify-center text-gray-200">
-        <Loader2 className="w-10 h-10 text-[#e7c88f] animate-spin mb-4" />
-        <p className="text-sm font-medium font-sans text-gray-400">Loading...</p>
-      </div>
-    );
+    return <CenteredProgress text="Loading..." />;
   }
 
   if (!account && location.pathname === "/") {
