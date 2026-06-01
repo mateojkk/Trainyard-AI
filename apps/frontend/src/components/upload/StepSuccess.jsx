@@ -84,7 +84,7 @@ export default function StepSuccess({
 
       <button
         onClick={() => navigate(`/dataset/${result.id}`)}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-brand-blue hover:bg-[#f0c57a] text-[#23120A] font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 py-3 bg-brand-blue hover:bg-[#f0c57a] text-[#1e90ff] font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer"
       >
         View in Marketplace
         <ArrowRight className="w-4 h-4" />
