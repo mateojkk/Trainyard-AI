@@ -145,10 +145,10 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
       c: partialZkLoginSignature.zkProof.proofPoints.c,
     },
     issBase64Details: {
-      value: partialZkLoginSignature.issBase64Details.value,
-      indexMod4: partialZkLoginSignature.issBase64Details.indexModulusZero,
+      value: partialZkLoginSignature.zkProof.issBase64Details.value,
+      indexMod4: partialZkLoginSignature.zkProof.issBase64Details.indexModulusZero,
     },
-    headerBase64: partialZkLoginSignature.headerBase64,
+    headerBase64: partialZkLoginSignature.zkProof.headerBase64,
     addressSeed,
   };
 
