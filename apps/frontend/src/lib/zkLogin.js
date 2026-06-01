@@ -2,7 +2,7 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
 import { SuiGraphQLClient } from "@mysten/sui/graphql";
 import { Transaction } from "@mysten/sui/transactions";
-import { authApi, zkproverApi } from "./api";
+import { authApi, zkproverApi, suiRpcApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
 
 const PENDING_KEY = "trainyard.zklogin.pending";
@@ -146,12 +146,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
 
 async function getMaxEpoch() {
   const result = await Promise.race([
-    client.core.getCurrentSystemState(),
+    suiRpcApi.getLatestEpoch(),
     new Promise((_, reject) => setTimeout(() => reject(new Error("Sui RPC timeout")), 15000)),
   ]);
-  const epoch = result?.systemState?.epoch;
+  const epoch = result?.result?.epoch;
   if (epoch === undefined || epoch === null)
-    throw new Error(`getCurrentSystemState returned unexpected result: ${JSON.stringify(result)}`);
+    throw new Error(`getLatestEpoch returned unexpected result: ${JSON.stringify(result)}`);
   return Number(epoch) + EPOCH_TTL;
 }
 

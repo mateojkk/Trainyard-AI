@@ -99,6 +99,13 @@ export const suiRpcApi = {
     });
     return r.data;
   },
+  getLatestEpoch: async () => {
+    const r = await API.post("/sui-rpc", {
+      jsonrpc: "2.0", id: 1, method: "suix_getCommitteeInfo",
+      params: [],
+    });
+    return r.data;
+  },
 };
 
 export default API;
