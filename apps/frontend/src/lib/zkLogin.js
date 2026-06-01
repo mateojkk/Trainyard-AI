@@ -84,6 +84,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const tx = new Transaction();
   tx.setSender(sender);
   tx.setGasPrice(0);
+  tx.setGasBudget(0);
   const sellerBalance = tx.balance({ type: USDC_COIN_TYPE, balance: sellerAmount });
   const commissionBalance = tx.balance({ type: USDC_COIN_TYPE, balance: commissionAmount });
   tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [sellerBalance, tx.pure.address(sellerAddress)] });
