@@ -84,7 +84,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
       if (prop === "core") {
         return new Proxy(target.core, {
           get(coreTarget, coreProp) {
-            if (coreProp === "resolveTransactionPlugin") return undefined;
+            if (coreProp === "resolveTransactionPlugin") return () => undefined;
             const value = Reflect.get(coreTarget, coreProp);
             return typeof value === "function" ? value.bind(coreTarget) : value;
           }
