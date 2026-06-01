@@ -29,6 +29,11 @@
       ]
     }
   ],
+  "functions": {
+    "api/*.py": {
+      "excludeFiles": "apps/frontend/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/walrus_upload",
