@@ -16,7 +16,7 @@ const BN254_FIELD = 218882428718392752222464057452572750885483644004160343436982
 // SuiGraphQLClient is required for client.core (address balance resolution used
 // by tx.balance() for gasless stablecoin transactions). SuiGrpcClient requires
 // an explicit baseUrl and its binary transport doesn't work in browsers without one.
-const GRAPHQL_URL = "https://sui-mainnet.mystenlabs.com/graphql";
+const GRAPHQL_URL = "https://graphql.mainnet.sui.io/graphql";
 const client = new SuiGraphQLClient({ url: GRAPHQL_URL });
 
 export async function beginZkLogin() {
