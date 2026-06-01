@@ -1,6 +1,6 @@
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
-import { SuiGrpcClient } from "@mysten/sui/grpc";
+import { SuiGraphQLClient } from "@mysten/sui/graphql";
 import { Transaction } from "@mysten/sui/transactions";
 import { authApi, zkproverApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
@@ -13,10 +13,11 @@ const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb06
 
 const BN254_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
-// SuiGrpcClient is required for address balance resolution used by tx.balance()
-// (the gasless stablecoin feature). SuiJsonRpcClient does not implement client.core
-// and always returns addressBalance=0, causing "0 < amount" errors.
-const client = new SuiGrpcClient({ network: "mainnet" });
+// SuiGraphQLClient is required for client.core (address balance resolution used
+// by tx.balance() for gasless stablecoin transactions). SuiGrpcClient requires
+// an explicit baseUrl and its binary transport doesn't work in browsers without one.
+const GRAPHQL_URL = "https://sui-mainnet.mystenlabs.com/graphql";
+const client = new SuiGraphQLClient({ url: GRAPHQL_URL });
 
 export async function beginZkLogin() {
   const keypair = Ed25519Keypair.generate();
