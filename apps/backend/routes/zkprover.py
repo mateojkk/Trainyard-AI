@@ -1,17 +1,14 @@
-import os
 import logging
 import httpx
-from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-
-load_dotenv()
 
 logger = logging.getLogger("zkprover_router")
 router = APIRouter()
 
-SHINAMI_API_KEY = os.getenv("SHINAMI_API_KEY", "")
-SHINAMI_ZKPROVER_URL = "https://api.us1.shinami.com/sui/zkprover/v1"
+# Mysten Labs public zkLogin prover (replaces sunset Shinami service)
+MYSTEN_PROVER_URL = "https://prover.mystenlabs.com/v1"
+
 
 class ProveRequest(BaseModel):
     jwt: str
@@ -21,50 +18,42 @@ class ProveRequest(BaseModel):
     salt: str
     keyClaimName: str = "sub"
 
+
 @router.post("/prove")
 async def create_zk_proof(payload: ProveRequest):
-    if not SHINAMI_API_KEY:
-        raise HTTPException(status_code=500, detail="Shinami API key not configured")
-
-    shinami_payload = {
-        "jsonrpc": "2.0",
-        "method": "shinami_zkp_createZkLoginProof",
-        "params": [
-            payload.jwt,
-            payload.maxEpoch,
-            payload.extendedEphemeralPublicKey,
-            payload.jwtRandomness,
-            payload.salt,
-            payload.keyClaimName,
-        ],
-        "id": 1,
+    prover_payload = {
+        "jwt": payload.jwt,
+        "extendedEphemeralPublicKey": payload.extendedEphemeralPublicKey,
+        "maxEpoch": payload.maxEpoch,
+        "jwtRandomness": payload.jwtRandomness,
+        "salt": payload.salt,
+        "keyClaimName": payload.keyClaimName,
     }
 
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                SHINAMI_ZKPROVER_URL,
-                headers={
-                    "X-API-Key": SHINAMI_API_KEY,
-                    "Content-Type": "application/json",
-                },
-                json=shinami_payload,
-                timeout=30.0,
+                MYSTEN_PROVER_URL,
+                headers={"Content-Type": "application/json"},
+                json=prover_payload,
+                timeout=60.0,
             )
-            response.raise_for_status()
             result = response.json()
 
-            if "error" in result:
-                logger.error(f"Shinami prover error: {result['error']}")
-                raise HTTPException(status_code=502, detail=f"Shinami prover error: {result['error']}")
+            if not response.is_success:
+                error_msg = result.get("message", result.get("name", str(result)))
+                logger.error(f"Prover error ({response.status_code}): {error_msg}")
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Prover error: {error_msg}",
+                )
 
-            return result["result"]
+            return result
     except httpx.TimeoutException:
-        logger.error("Shinami prover request timed out")
-        raise HTTPException(status_code=504, detail="Shinami prover request timed out")
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Shinami prover HTTP error: {e.response.status_code}")
-        raise HTTPException(status_code=502, detail=f"Shinami prover returned HTTP {e.response.status_code}")
+        logger.error("Prover request timed out")
+        raise HTTPException(status_code=504, detail="Prover request timed out")
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Shinami prover request failed: {str(e)}")
+        logger.error(f"Prover request failed: {str(e)}")
         raise HTTPException(status_code=502, detail=f"Prover request failed: {str(e)}")

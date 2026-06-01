@@ -11,7 +11,8 @@ const SUI_RPC_URL = import.meta.env.VITE_SUI_RPC_URL;
 const PLATFORM_ADDRESS = import.meta.env.VITE_PLATFORM_ADDRESS || "";
 const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
 
-const BN254_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+// zkLogin requires salt < 2^128. Existing salts may be 256-bit hex; mask to 128 bits.
+const SALT_MASK = (1n << 128n) - 1n;
 
 // SuiGraphQLClient is required for client.core (address balance resolution used
 // by tx.balance() for gasless stablecoin transactions). SuiGrpcClient requires
@@ -39,7 +40,7 @@ export async function beginZkLogin(customReturnTo) {
 export async function hydrateZkLoginAccount() {
   const session = await authApi.me();
   if (!session.authenticated || !session.id_token) return null;
-  const userSalt = BigInt("0x" + session.salt) % BN254_FIELD;
+  const userSalt = BigInt("0x" + session.salt) & SALT_MASK;
   const jwt = decodeJwt(session.id_token);
   return {
     address: jwtToAddress(session.id_token, userSalt, false),
@@ -63,7 +64,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   if (!pending) throw new Error("No zkLogin session found. Please sign in again.");
   const session = await authApi.me();
   if (!session.authenticated || !session.id_token) throw new Error("Not authenticated");
-  const saltBigInt = BigInt("0x" + session.salt) % BN254_FIELD;
+  const saltBigInt = BigInt("0x" + session.salt) & SALT_MASK;
   const keypair = Ed25519Keypair.fromSecretKey(pending.secretKey);
   const decodedJwt = decodeJwt(session.id_token);
   const sender = jwtToAddress(session.id_token, saltBigInt, false);

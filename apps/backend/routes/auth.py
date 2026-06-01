@@ -69,7 +69,7 @@ async def google_callback(request: Request, code: str, state: str):
         if salt_response.data:
             salt = salt_response.data[0]["salt"]
         else:
-            salt = secrets.token_hex(32)
+            salt = secrets.token_hex(16)
             client.table("salts").insert({"google_sub": sub, "salt": salt}).execute()
 
         session = build_session(id_token, claims, salt)
