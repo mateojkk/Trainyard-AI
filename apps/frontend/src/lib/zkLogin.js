@@ -2,7 +2,7 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
 import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
-import { authApi, zkproverApi } from "./api";
+import { authApi, zkproverApi, suiRpcApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
 
 const PENDING_KEY = "trainyard.zklogin.pending";
@@ -80,29 +80,17 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const sender = jwtToAddress(session.id_token, saltBigInt, false);
   const priceInBaseUnits = BigInt(Math.round(priceInUsdc * 1_000_000));
   const commissionAmount = priceInBaseUnits * 5n / 100n;
-  const { totalBalance } = await client.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
-  if (BigInt(totalBalance || "0") < priceInBaseUnits)
-    throw new Error(`Insufficient USDC balance. You have ${(Number(totalBalance) / 1_000_000).toFixed(2)} USDC but need ${priceInUsdc.toFixed(2)} USDC.`);
+  try {
+    const { result: { totalBalance } } = await suiRpcApi.getBalance(sender, USDC_COIN_TYPE);
+    if (BigInt(totalBalance || "0") < priceInBaseUnits) throw new Error(`Insufficient USDC. You have ${(Number(totalBalance) / 1_000_000).toFixed(2)} USDC, need ${priceInUsdc.toFixed(2)}.`);
+  } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance check failed, proceeding:", e.message); }
 
   const tx = new Transaction();
-  tx.setSender(sender);
-  tx.setGasPrice(0);
+  tx.setSender(sender); tx.setGasPrice(0);
   const total = tx.balance({ type: USDC_COIN_TYPE, balance: priceInBaseUnits });
-  const commission = tx.moveCall({
-    target: "0x2::balance::split",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [total, tx.pure.u64(commissionAmount)],
-  });
-  tx.moveCall({
-    target: "0x2::balance::send_funds",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [total, tx.pure.address(sellerAddress)],
-  });
-  tx.moveCall({
-    target: "0x2::balance::send_funds",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [commission, tx.pure.address(PLATFORM_ADDRESS)],
-  });
+  const commission = tx.moveCall({ target: "0x2::balance::split", typeArguments: [USDC_COIN_TYPE], arguments: [total, tx.pure.u64(commissionAmount)] });
+  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [total, tx.pure.address(sellerAddress)] });
+  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commission, tx.pure.address(PLATFORM_ADDRESS)] });
   let bytes, userSignature;
   try {
     ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
