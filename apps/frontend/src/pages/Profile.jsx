@@ -91,7 +91,7 @@ export default function Profile() {
   if (loading) {
     return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
       <div className="w-48 h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
-        <div className="h-full w-1/2 bg-[#D89F55] rounded-full animate-progress" />
+        <div className="h-full w-1/2 bg-[#D89F55] rounded-full" style={{ animation: "progress 1.2s ease-in-out infinite" }} />
       </div>
     </div>;
   }
