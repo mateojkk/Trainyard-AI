@@ -1,6 +1,6 @@
 import { Play, Sparkles } from 'lucide-react';
 import Footer from '../components/Footer';
-import landingBackground from '../assets/landing-background-hires.jpg';
+import landingBackground from '../assets/landing-background.jpg';
 
 export default function Landing({ onLogin, authError }) {
   return (
