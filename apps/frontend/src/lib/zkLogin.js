@@ -157,8 +157,9 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     maxEpoch: Number(pending.maxEpoch),
     userSignature,
   });
+  const transactionBytes = Uint8Array.from(atob(bytes), (c) => c.charCodeAt(0));
   const result = await client.core.executeTransaction({
-    transaction: bytes, signatures: [zkLoginSignature],
+    transaction: transactionBytes, signatures: [zkLoginSignature],
   });
   if (!result.status?.success)
     throw new Error(`Transaction failed: ${result.status?.error?.message || JSON.stringify(result.status?.error) || "Unknown error"}`);
