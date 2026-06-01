@@ -81,8 +81,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const priceInBaseUnits = BigInt(Math.round(priceInUsdc * 1_000_000));
   const commissionAmount = priceInBaseUnits * 5n / 100n;
   try {
-    const { result: { totalBalance } } = await suiRpcApi.getBalance(sender, USDC_COIN_TYPE);
-    if (BigInt(totalBalance || "0") < priceInBaseUnits) throw new Error(`Insufficient USDC. You have ${(Number(totalBalance) / 1_000_000).toFixed(2)} USDC, need ${priceInUsdc.toFixed(2)}.`);
+    const balanceResp = await suiRpcApi.getBalance(sender, USDC_COIN_TYPE);
+    if (balanceResp.error) throw new Error(balanceResp.error.message || JSON.stringify(balanceResp.error));
+    if (!balanceResp.result) throw new Error("No result in balance response");
+    const totalBalance = balanceResp.result.totalBalance;
+    if (totalBalance === undefined) throw new Error("No totalBalance field");
+    if (BigInt(totalBalance) < priceInBaseUnits) throw new Error(`Insufficient USDC`);
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance check failed, proceeding:", e.message); }
 
   const tx = new Transaction();
@@ -95,7 +99,11 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   try {
     ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
   } catch (signErr) {
-    throw new Error(`Transaction build failed: ${signErr.message}`);
+    const msg = signErr.message || "";
+    if (msg.includes("Invalid withdraw reservation") || msg.includes("less than requested") || msg.includes("Transaction build failed")) {
+      throw new Error(`Insufficient USDC balance. Fund your zkLogin address (${sender.slice(0,6)}...${sender.slice(-4)}) with USDC on Sui mainnet and try again.`);
+    }
+    throw new Error(`Transaction build failed: ${msg}`);
   }
   const partialZkLoginSignature = await zkproverApi.prove({
     jwt: session.id_token, maxEpoch: String(pending.maxEpoch),
