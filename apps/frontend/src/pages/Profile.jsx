@@ -7,7 +7,7 @@ import ProfileCard from "../components/ProfileCard";
 import ProfileEditor from "../components/ProfileEditor";
 import FollowListModal from "../components/FollowListModal";
 import useFollowList from "../hooks/useFollowList";
-import { User, Loader2 } from "lucide-react";
+import { User } from "lucide-react";
 export default function Profile() {
   const { username: routeUsername } = useParams();
   const navigate = useNavigate();
@@ -89,8 +89,10 @@ export default function Profile() {
     setFollowLoading(false);
   }
   if (loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]">
-      <Loader2 className="w-8 h-8 text-[#e7c88f] animate-spin" />
+    return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="w-48 h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
+        <div className="h-full w-1/2 bg-[#D89F55] rounded-full animate-progress" />
+      </div>
     </div>;
   }
 

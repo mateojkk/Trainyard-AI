@@ -3,7 +3,7 @@ import { useZkLogin } from "../context/useZkLogin";
 import LandingFeatures from "../components/LandingFeatures";
 import { datasetsApi } from "../lib/api";
 import DatasetCard from "../components/DatasetCard";
-import { Search, Loader2, Database, AlertCircle, RefreshCw } from "lucide-react";
+import { Search, Database, AlertCircle, RefreshCw } from "lucide-react";
 
 const CATS = [
   { id: "all", label: "All Data" }, { id: "nlp", label: "NLP" }, { id: "vision", label: "Vision" },
@@ -65,8 +65,10 @@ export default function Marketplace() {
             </div>
           ) : loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-brand-blue animate-spin" />
-              <span className="text-xs text-[#f3e4cf] mt-2 font-mono">Loading...</span>
+              <div className="w-48 h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
+                <div className="h-full w-1/2 bg-[#D89F55] rounded-full animate-progress" />
+              </div>
+              <span className="text-xs text-[#f3e4cf] mt-4 font-mono">Loading...</span>
             </div>
           ) : datasets.length === 0 ? (
             <div className="text-center py-20 border border-dashed border-[#3a322f] rounded-lg">

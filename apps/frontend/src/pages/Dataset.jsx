@@ -5,7 +5,7 @@ import { fetchPreview } from "../lib/walrus";
 import DatasetInfo from "../components/DatasetInfo";
 import DatasetStats from "../components/DatasetStats";
 import BuyModal from "../components/BuyModal";
-import { ArrowLeft, Loader2, Info } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
 
 export default function Dataset() {
   const { id } = useParams();
@@ -50,8 +50,10 @@ export default function Dataset() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-xs text-[#f3e4cf] font-mono">
-        <Loader2 className="w-6 h-6 text-brand-blue animate-spin" />
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-xs text-[#f3e4cf] font-mono">
+        <div className="w-48 h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
+          <div className="h-full w-1/2 bg-[#D89F55] rounded-full animate-progress" />
+        </div>
         Synchronizing storage record...
       </div>
     );
