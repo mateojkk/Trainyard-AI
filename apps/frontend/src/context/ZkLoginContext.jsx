@@ -53,8 +53,9 @@ export function ZkLoginProvider({ children }) {
     signAndExecuteTransaction: signTx,
     login: async (customReturnTo) => {
       setError("");
+      const targetPath = typeof customReturnTo === "string" ? customReturnTo : undefined;
       try {
-        await beginZkLogin(customReturnTo);
+        await beginZkLogin(targetPath);
       } catch (err) {
         setError(err.message || "Unable to start zkLogin.");
       }

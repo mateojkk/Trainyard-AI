@@ -72,7 +72,7 @@ export default function WalletButton() {
 
   if (!account)
     return <div className="relative">
-      <button onClick={login} className="flex items-center gap-2 px-4 py-1.5 bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold rounded-md shadow transition cursor-pointer text-sm"><KeyRound className="w-4 h-4" /> Login</button>
+      <button onClick={() => login()} className="flex items-center gap-2 px-4 py-1.5 bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold rounded-md shadow transition cursor-pointer text-sm"><KeyRound className="w-4 h-4" /> Login</button>
       {error && <div className="absolute right-0 mt-2 w-64 text-[10px] text-red-300 bg-red-950/30 border border-red-900/40 rounded p-2">{error}</div>}
     </div>;
 
