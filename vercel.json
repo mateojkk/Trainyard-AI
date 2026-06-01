@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "rewrites": [
     { "source": "/api/walrus_upload", "destination": "/api/walrus_upload.mjs" },
+    { "source": "/api", "destination": "/api/index.py" },
     { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
