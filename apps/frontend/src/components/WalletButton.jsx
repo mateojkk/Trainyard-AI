@@ -72,7 +72,7 @@ export default function WalletButton() {
 
   if (!account)
     return <div className="relative">
-      <button onClick={() => login()} className="flex items-center gap-2 px-4 py-1.5 bg-[#D89F55] hover:bg-[#f0c57a] text-[#1e90ff] font-semibold rounded-md shadow transition cursor-pointer text-sm"><KeyRound className="w-4 h-4" /> Login</button>
+      <button onClick={() => login()} className="flex items-center gap-2 px-4 py-1.5 bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold rounded-md shadow transition cursor-pointer text-sm"><KeyRound className="w-4 h-4" /> Login</button>
       {error && <div className="absolute right-0 mt-2 w-64 text-[10px] text-red-300 bg-red-950/30 border border-red-900/40 rounded p-2">{error}</div>}
     </div>;
 
@@ -124,7 +124,7 @@ export default function WalletButton() {
                   <span>{exportState.error}</span>
                 </div>
                 <div className="flex items-center gap-2 justify-end">
-                  <button onClick={() => { setExportState(s => ({ ...s, open: false })); login(); }} className="px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#1e90ff] font-semibold cursor-pointer transition border-0">Sign In Again</button>
+                  <button onClick={() => { setExportState(s => ({ ...s, open: false })); login(); }} className="px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold cursor-pointer transition border-0">Sign In Again</button>
                   <button onClick={() => setExportState(s => ({ ...s, open: false }))} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border-0">Close</button>
                 </div>
               </>
@@ -138,7 +138,7 @@ export default function WalletButton() {
                   <button onClick={toggleReveal} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border border-[#3a322f] rounded">
                     {exportState.revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}{exportState.revealed ? "Hide" : "Reveal"}
                   </button>
-                  <button onClick={copyKey} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#1e90ff] font-semibold cursor-pointer transition border-0">
+                  <button onClick={copyKey} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold cursor-pointer transition border-0">
                     {exportState.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{exportState.copied ? "Copied" : "Copy"}
                   </button>
                   <button onClick={() => setExportState(s => ({ ...s, open: false }))} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border-0">Close</button>

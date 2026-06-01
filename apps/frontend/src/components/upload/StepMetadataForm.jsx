@@ -126,7 +126,7 @@ export default function StepMetadataForm({
             type="button"
             onClick={handleUploadAndStore}
             disabled={!account || metadata.title.trim().length === 0}
-            className="w-2/3 py-2.5 bg-brand-blue hover:bg-[#f0c57a] disabled:bg-[#51322D] text-[#1e90ff] disabled:text-[#f3e4cf] font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5"
+            className="w-2/3 py-2.5 bg-brand-blue hover:bg-[#f0c57a] disabled:bg-[#51322D] text-[#23120A] disabled:text-[#f3e4cf] font-bold rounded text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5"
           >
             <Lock className="w-3.5 h-3.5" />
             Encrypt & Upload

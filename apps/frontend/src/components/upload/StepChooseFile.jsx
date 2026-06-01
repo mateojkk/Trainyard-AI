@@ -57,7 +57,7 @@ export default function StepChooseFile({
           
           <button
             onClick={handleContinueToForm}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue hover:bg-[#f0c57a] text-[#1e90ff] font-semibold rounded text-xs transition duration-150 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue hover:bg-[#f0c57a] text-[#23120A] font-semibold rounded text-xs transition duration-150 cursor-pointer"
           >
             Continue
             <ArrowRight className="w-3.5 h-3.5" />
