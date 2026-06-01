@@ -1,8 +1,8 @@
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
-import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
+import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Transaction } from "@mysten/sui/transactions";
-import { authApi, zkproverApi, suiRpcApi } from "./api";
+import { authApi, zkproverApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
 
 const PENDING_KEY = "trainyard.zklogin.pending";
@@ -12,24 +12,11 @@ const PLATFORM_ADDRESS = import.meta.env.VITE_PLATFORM_ADDRESS || "";
 const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
 
 const BN254_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
-if (!SUI_RPC_URL) throw new Error("VITE_SUI_RPC_URL is not set");
-const FALLBACK_RPC = "https://rpc.mainnet.sui.io";
 
-const client = new SuiJsonRpcClient({ url: SUI_RPC_URL, network: "mainnet" });
-const origRequest = client.transport.request.bind(client.transport);
-client.transport.request = async ({ method, params, signal }) => {
-  if (method === "suix_getLatestSuiSystemState") {
-    const resp = await fetch(FALLBACK_RPC, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: [] }),
-      signal,
-    });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
-  }
-  return origRequest({ method, params, signal });
-};
+// SuiGrpcClient is required for address balance resolution used by tx.balance()
+// (the gasless stablecoin feature). SuiJsonRpcClient does not implement client.core
+// and always returns addressBalance=0, causing "0 < amount" errors.
+const client = new SuiGrpcClient({ network: "mainnet" });
 
 export async function beginZkLogin() {
   const keypair = Ed25519Keypair.generate();
@@ -80,21 +67,25 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const sender = jwtToAddress(session.id_token, saltBigInt, false);
   const priceInBaseUnits = BigInt(Math.round(priceInUsdc * 1_000_000));
   const commissionAmount = priceInBaseUnits * 5n / 100n;
-  try {
-    const balanceResp = await suiRpcApi.getBalance(sender, USDC_COIN_TYPE);
-    if (balanceResp.error) throw new Error(balanceResp.error.message || JSON.stringify(balanceResp.error));
-    if (!balanceResp.result) throw new Error("No result in balance response");
-    const totalBalance = balanceResp.result.totalBalance;
-    if (totalBalance === undefined) throw new Error("No totalBalance field");
-    if (BigInt(totalBalance) < priceInBaseUnits) throw new Error(`Insufficient USDC`);
-  } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance check failed, proceeding:", e.message); }
+  const sellerAmount = priceInBaseUnits - commissionAmount;
 
+  // Pre-flight balance check via gRPC core API
+  try {
+    const { balance } = await client.core.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
+    const available = BigInt(balance.balance ?? 0);
+    if (available < priceInBaseUnits) throw new Error(`Insufficient USDC`);
+  } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
+
+  // Build gasless stablecoin PTB using address balance intents.
+  // Each tx.balance() call creates an independent withdrawal reservation;
+  // the SDK resolves both via 0x2::balance::redeem_funds during signing.
   const tx = new Transaction();
-  tx.setSender(sender); tx.setGasPrice(0);
-  const total = tx.balance({ type: USDC_COIN_TYPE, balance: priceInBaseUnits });
-  const commission = tx.moveCall({ target: "0x2::balance::split", typeArguments: [USDC_COIN_TYPE], arguments: [total, tx.pure.u64(commissionAmount)] });
-  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [total, tx.pure.address(sellerAddress)] });
-  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commission, tx.pure.address(PLATFORM_ADDRESS)] });
+  tx.setSender(sender);
+  tx.setGasPrice(0);
+  const sellerBalance = tx.balance({ type: USDC_COIN_TYPE, balance: sellerAmount });
+  const commissionBalance = tx.balance({ type: USDC_COIN_TYPE, balance: commissionAmount });
+  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [sellerBalance, tx.pure.address(sellerAddress)] });
+  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)] });
   let bytes, userSignature;
   try {
     ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
@@ -115,22 +106,23 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     inputs: { ...partialZkLoginSignature, addressSeed },
     maxEpoch: Number(pending.maxEpoch), userSignature,
   });
-  const result = await client.executeTransactionBlock({
-    transactionBlock: bytes, signature: zkLoginSignature, options: { showEffects: true },
+  const result = await client.core.executeTransaction({
+    transaction: bytes, signatures: [zkLoginSignature],
   });
-  if (result.effects?.status?.status !== "success")
-    throw new Error(`Transaction failed: ${result.effects?.status?.error || "Unknown error"}`);
+  if (!result.status?.success)
+    throw new Error(`Transaction failed: ${result.status?.error?.message || JSON.stringify(result.status?.error) || "Unknown error"}`);
   return result.digest;
 }
 
 async function getMaxEpoch() {
   const result = await Promise.race([
-    client.getCommitteeInfo(),
+    client.core.getCurrentSystemState(),
     new Promise((_, reject) => setTimeout(() => reject(new Error("Sui RPC timeout")), 15000)),
   ]);
-  if (!result || typeof result.epoch !== "string")
-    throw new Error(`getCommitteeInfo returned unexpected result: ${JSON.stringify(result)}`);
-  return Number(result.epoch) + EPOCH_TTL;
+  const epoch = result?.systemState?.epoch;
+  if (epoch === undefined || epoch === null)
+    throw new Error(`getCurrentSystemState returned unexpected result: ${JSON.stringify(result)}`);
+  return Number(epoch) + EPOCH_TTL;
 }
 
 function loadPending() {
