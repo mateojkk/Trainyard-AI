@@ -1,3 +1,5 @@
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
+import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
 import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
 import { authApi, zkproverApi } from "./api";
@@ -14,8 +16,6 @@ if (!SUI_RPC_URL) throw new Error("VITE_SUI_RPC_URL is not set");
 const client = new SuiJsonRpcClient({ url: SUI_RPC_URL, network: "mainnet" });
 
 export async function beginZkLogin() {
-  const { Ed25519Keypair } = await import("@mysten/sui/keypairs/ed25519");
-  const { generateNonce, generateRandomness, getExtendedEphemeralPublicKey } = await import("@mysten/sui/zklogin");
   const keypair = Ed25519Keypair.generate();
   const randomness = generateRandomness();
   const maxEpoch = await getMaxEpoch();
@@ -34,7 +34,6 @@ export async function beginZkLogin() {
 export async function hydrateZkLoginAccount() {
   const session = await authApi.me();
   if (!session.authenticated || !session.id_token) return null;
-  const { decodeJwt, jwtToAddress } = await import("@mysten/sui/zklogin");
   const userSalt = BigInt("0x" + session.salt) % BN254_FIELD;
   const jwt = decodeJwt(session.id_token);
   return {
@@ -55,8 +54,6 @@ export function clearZkLoginSession() {
 }
 
 export async function signAndExecuteTransaction(priceInUsdc) {
-  const { Ed25519Keypair } = await import("@mysten/sui/keypairs/ed25519");
-  const { getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } = await import("@mysten/sui/zklogin");
   const pending = loadPending();
   if (!pending) throw new Error("No zkLogin session found. Please sign in again.");
   const session = await authApi.me();
