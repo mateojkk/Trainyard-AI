@@ -77,7 +77,11 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     const { balance } = await client.core.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
     const available = BigInt(balance.balance ?? 0);
     console.log("[zkLogin] Balance check:", { sender, available: available.toString(), priceInBaseUnits: priceInBaseUnits.toString(), sellerAmount: sellerAmount.toString(), commissionAmount: commissionAmount.toString(), addressBalance: balance.addressBalance, coinBalance: balance.coinBalance });
-    if (available < priceInBaseUnits) throw new Error(`Insufficient USDC: have ${available}, need ${priceInBaseUnits}`);
+    if (available < priceInBaseUnits) {
+      const haveDec = (Number(available) / 1_000_000).toFixed(2);
+      const needDec = (Number(priceInBaseUnits) / 1_000_000).toFixed(2);
+      throw new Error(`Insufficient USDC: have ${haveDec}, need ${needDec}`);
+    }
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
   // Create a proxy to bypass the GraphQL resolver and fall back to the offline/core resolver
