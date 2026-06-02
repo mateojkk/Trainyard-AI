@@ -2,6 +2,7 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Transaction } from "@mysten/sui/transactions";
+import { bcs } from "@mysten/sui/bcs";
 import { authApi, zkproverApi, suiRpcApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
 
@@ -74,7 +75,15 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   try {
     const { balance } = await client.core.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
     const available = BigInt(balance.balance ?? 0);
-    console.log("[zkLogin] Balance check:", { sender, available: available.toString(), priceInBaseUnits: priceInBaseUnits.toString(), sellerAmount: sellerAmount.toString(), commissionAmount: commissionAmount.toString(), addressBalance: balance.addressBalance, coinBalance: balance.coinBalance });
+    console.log("[zkLogin] Balance check:", {
+      sender,
+      totalAvailable: available.toString(),
+      addressBalance: balance.addressBalance,
+      coinBalance: balance.coinBalance,
+      priceInBaseUnits: priceInBaseUnits.toString(),
+      sellerAmount: sellerAmount.toString(),
+      commissionAmount: commissionAmount.toString(),
+    });
     if (available < priceInBaseUnits) {
       const haveDec = (Number(available) / 1_000_000).toFixed(2);
       const needDec = (Number(priceInBaseUnits) / 1_000_000).toFixed(2);
@@ -83,9 +92,9 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
   // Build gasless stablecoin PTB using address balance intents.
-  // Each tx.balance() call creates a Balance<T> input that the gRPC client's
-  // simulateTransaction resolves, detects gasless eligibility, and sets
-  // gasPrice = 0, gasBudget = 0, and ValidDuring expiration automatically.
+  // tx.balance() creates CoinWithBalance intents that the intent resolver
+  // resolves during prepareForSerialization. For gasless eligibility it must
+  // take Path 1 (all balance output, addressBalance >= required).
   const tx = new Transaction();
   tx.setSender(sender);
 
@@ -105,13 +114,68 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)],
   });
 
-  // Build — the SuiGrpcClient detects gasless eligibility during
-  // simulateTransaction and sets gasPrice = 0, gasBudget = 0 automatically.
-  const txBytes = await tx.build({ client });
-  console.log("[zkLogin] Built transaction data:", {
-    expiration: tx.getData().expiration,
-    gasData: tx.getData().gasData,
-    inputs: tx.getData().inputs,
+  // Resolve intents — reads on-chain balances to decide Path 1 vs Path 2
+  await tx.prepareForSerialization({ client });
+  console.log("[zkLogin] Resolved commands:", tx.getData().commands.map((c) => {
+    if (c.$kind !== "MoveCall") return c.$kind;
+    const pkg = c.MoveCall.package.replace("0x", "").replace(/^0+/, "");
+    return `0x${pkg}::${c.MoveCall.module}::${c.MoveCall.function}`;
+  }));
+
+  // Manually set zero gas for gasless eligibility
+  tx.setGasPrice(0);
+  tx.setGasBudget(0n);
+  tx.setGasPayment([]);
+
+  // Set ValidDuring expiration (required when gasPayment is empty)
+  const [chainIdRes, systemStateRes] = await Promise.all([
+    client.core.getChainIdentifier(),
+    client.core.getCurrentSystemState(),
+  ]);
+  const epoch = BigInt(systemStateRes.systemState.epoch);
+  tx.getData().expiration = {
+    $kind: "ValidDuring",
+    ValidDuring: {
+      minEpoch: String(epoch),
+      maxEpoch: String(epoch + 1n),
+      minTimestamp: null,
+      maxTimestamp: null,
+      chain: chainIdRes.chainIdentifier,
+      nonce: (Math.random() * 4294967296) >>> 0,
+    },
+  };
+
+  // Serialize directly via BCS, bypassing TransactionDataBuilder.build()
+  // which rejects gasBudget = 0n (!0n is truthy in JS).
+  const data = tx.getData();
+  const txBytes = bcs.TransactionData.serialize({
+    V1: {
+      sender: data.sender,
+      expiration: data.expiration,
+      gasData: {
+        payment: data.gasData.payment ?? [],
+        owner: data.gasData.owner ?? data.sender,
+        price: BigInt(data.gasData.price ?? 0),
+        budget: BigInt(data.gasData.budget ?? 0),
+      },
+      kind: {
+        ProgrammableTransaction: {
+          inputs: data.inputs,
+          commands: data.commands,
+        },
+      },
+    },
+  }).toBytes();
+  console.log("[zkLogin] Built transaction data (gasless):", {
+    expiration: data.expiration,
+    gasData: {
+      price: BigInt(data.gasData.price ?? 0).toString(),
+      budget: BigInt(data.gasData.budget ?? 0).toString(),
+      payment: data.gasData.payment,
+      owner: data.gasData.owner,
+    },
+    inputsCount: data.inputs.length,
+    commandsCount: data.commands.length,
   });
 
   let bytes, userSignature;
