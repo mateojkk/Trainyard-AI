@@ -18,7 +18,7 @@ const SALT_MASK = (1n << 128n) - 1n;
 // by tx.balance() for gasless stablecoin transactions). SuiGrpcClient requires
 // an explicit baseUrl and its binary transport doesn't work in browsers without one.
 const GRAPHQL_URL = "https://graphql.mainnet.sui.io/graphql";
-const client = new SuiGraphQLClient({ url: GRAPHQL_URL });
+const client = new SuiGraphQLClient({ url: GRAPHQL_URL, network: "mainnet" });
 
 export async function beginZkLogin(customReturnTo) {
   const keypair = Ed25519Keypair.generate();
@@ -90,13 +90,46 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const tx = new Transaction();
   tx.setSender(sender);
 
-  const sellerBalance = tx.balance({ type: USDC_COIN_TYPE, balance: sellerAmount });
-  const commissionBalance = tx.balance({ type: USDC_COIN_TYPE, balance: commissionAmount });
-  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [sellerBalance, tx.pure.address(sellerAddress)] });
-  tx.moveCall({ target: "0x2::balance::send_funds", typeArguments: [USDC_COIN_TYPE], arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)] });
+  // 1. Seller payment
+  const sellerWithdrawal = tx.withdrawal({ amount: sellerAmount, type: USDC_COIN_TYPE });
+  const [sellerCoin] = tx.moveCall({
+    target: "0x2::coin::redeem_funds",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [sellerWithdrawal],
+  });
+  const [sellerBalance] = tx.moveCall({
+    target: "0x2::coin::into_balance",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [sellerCoin],
+  });
+  tx.moveCall({
+    target: "0x2::balance::send_funds",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [sellerBalance, tx.pure.address(sellerAddress)],
+  });
+
+  // 2. Platform commission payment
+  const commissionWithdrawal = tx.withdrawal({ amount: commissionAmount, type: USDC_COIN_TYPE });
+  const [commissionCoin] = tx.moveCall({
+    target: "0x2::coin::redeem_funds",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [commissionWithdrawal],
+  });
+  const [commissionBalance] = tx.moveCall({
+    target: "0x2::coin::into_balance",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [commissionCoin],
+  });
+  tx.moveCall({
+    target: "0x2::balance::send_funds",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)],
+  });
   
-  // Build and print transaction data for debugging before signing
-  await tx.build({ client });
+  // Build the transaction once to resolve and retrieve bytes.
+  // The GraphQL client / SDK automatically detects this eligible gasless stablecoin transfer
+  // and resolves the gasPrice = 0, gasBudget = 0, and ValidDuring expiration during simulation.
+  const txBytes = await tx.build({ client });
   console.log("[zkLogin] Built transaction data:", {
     expiration: tx.getData().expiration,
     gasData: tx.getData().gasData,
@@ -104,7 +137,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   });
 
   let bytes, userSignature;
-  ({ bytes, signature: userSignature } = await tx.sign({ client, signer: keypair }));
+  ({ bytes, signature: userSignature } = await keypair.signTransaction(txBytes));
   console.log("[zkLogin] Prover request payload:", {
     maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
@@ -145,13 +178,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   });
   console.log("[zkLogin] Transaction execution result:", JSON.stringify(result));
   
-  const txData = result.Transaction || result.FailedTransaction;
-  if (!txData) throw new Error("Transaction failed: No execution data returned");
-  if (result.$kind === "FailedTransaction" || !txData.status?.success) {
-    const errorMsg = txData.status?.error?.message || JSON.stringify(txData.status?.error) || "Unknown error";
+  if (!result) throw new Error("Transaction failed: No execution data returned");
+  if (!result.status?.success) {
+    const errorMsg = result.status?.error?.message || JSON.stringify(result.status?.error) || "Unknown error";
     throw new Error(`Transaction failed: ${errorMsg}`);
   }
-  return txData.digest;
+  return result.digest;
 }
 
 async function getMaxEpoch() {
