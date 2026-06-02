@@ -122,60 +122,40 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     return `0x${pkg}::${c.MoveCall.module}::${c.MoveCall.function}`;
   }));
 
-  // Manually set zero gas for gasless eligibility
-  tx.setGasPrice(0);
-  tx.setGasBudget(0n);
-  tx.setGasPayment([]);
-
-  // Set ValidDuring expiration (required when gasPayment is empty)
-  const [chainIdRes, systemStateRes] = await Promise.all([
-    client.core.getChainIdentifier(),
-    client.core.getCurrentSystemState(),
-  ]);
-  const epoch = BigInt(systemStateRes.systemState.epoch);
-  tx.getData().expiration = {
-    $kind: "ValidDuring",
-    ValidDuring: {
-      minEpoch: String(epoch),
-      maxEpoch: String(epoch + 1n),
-      minTimestamp: null,
-      maxTimestamp: null,
-      chain: chainIdRes.chainIdentifier,
-      nonce: (Math.random() * 4294967296) >>> 0,
-    },
-  };
-
-  // Serialize directly via BCS, bypassing TransactionDataBuilder.build()
-  // which rejects gasBudget = 0n (!0n is truthy in JS).
-  const data = tx.getData();
-  const txBytes = bcs.TransactionData.serialize({
-    V1: {
-      sender: data.sender,
-      expiration: data.expiration,
-      gasData: {
-        payment: data.gasData.payment ?? [],
-        owner: data.gasData.owner ?? data.sender,
-        price: BigInt(data.gasData.price ?? 0),
-        budget: BigInt(data.gasData.budget ?? 0),
-      },
-      kind: {
-        ProgrammableTransaction: {
-          inputs: data.inputs,
-          commands: data.commands,
+  // Build — the gRPC plugin sends to the fullnode with doGasSelection: true.
+  // If the fullnode detects gasless eligibility (Path 1, address balance ops on
+  // an allowlisted stablecoin), it sets gasPayment=[], gasPrice=0, gasBudget=0,
+  // and ValidDuring expiration automatically. TransactionDataBuilder.build()
+  // then throws "Missing gas budget" because !0n is truthy — we catch that,
+  // read the resolved data, and serialize with BCS directly.
+  let txBytes;
+  try {
+    txBytes = await tx.build({ client });
+  } catch (e) {
+    if (!e.message?.includes("Missing gas budget") && !e.message?.includes("Missing gas payment") && !e.message?.includes("Missing gas price")) throw e;
+    const data = tx.getData();
+    txBytes = bcs.TransactionData.serialize({
+      V1: {
+        sender: data.sender,
+        expiration: data.expiration || { None: true },
+        gasData: {
+          payment: data.gasData.payment ?? [],
+          owner: data.gasData.owner ?? data.sender,
+          price: BigInt(data.gasData.price ?? 0),
+          budget: BigInt(data.gasData.budget ?? 0),
+        },
+        kind: {
+          ProgrammableTransaction: {
+            inputs: data.inputs,
+            commands: data.commands,
+          },
         },
       },
-    },
-  }).toBytes();
+    }).toBytes();
+  }
   console.log("[zkLogin] Built transaction data (gasless):", {
-    expiration: data.expiration,
-    gasData: {
-      price: BigInt(data.gasData.price ?? 0).toString(),
-      budget: BigInt(data.gasData.budget ?? 0).toString(),
-      payment: data.gasData.payment,
-      owner: data.gasData.owner,
-    },
-    inputsCount: data.inputs.length,
-    commandsCount: data.commands.length,
+    expiration: tx.getData().expiration,
+    gasData: { ...tx.getData().gasData },
   });
 
   let bytes, userSignature;
