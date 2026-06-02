@@ -122,6 +122,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   tx.setGasPrice(0);
   tx.setGasBudget(0n);
   tx.setGasPayment([]);
+  await setGaslessExpiration(tx);
 
   // Let the SDK resolve tx.balance() into FundsWithdrawal + send_funds calls and
   // serialize the normalized BCS shape. Manual BCS assembly leaks SDK-internal
@@ -220,4 +221,23 @@ function toUsdcBaseUnits(amount) {
     throw new Error("Invalid USDC amount.");
   }
   return BigInt(whole) * 1_000_000n + BigInt(fraction);
+}
+
+async function setGaslessExpiration(tx) {
+  const [chainIdRes, systemStateRes] = await Promise.all([
+    client.core.getChainIdentifier(),
+    client.core.getCurrentSystemState(),
+  ]);
+  const epoch = BigInt(systemStateRes.systemState.epoch);
+
+  tx.setExpiration({
+    ValidDuring: {
+      minEpoch: String(epoch),
+      maxEpoch: String(epoch + 1n),
+      minTimestamp: null,
+      maxTimestamp: null,
+      chain: chainIdRes.chainIdentifier,
+      nonce: (Math.random() * 0x100000000) >>> 0,
+    },
+  });
 }
