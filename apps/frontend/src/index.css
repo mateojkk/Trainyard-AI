@@ -21,6 +21,10 @@ body, input, textarea, select, button {
   font-weight: 400;
 }
 
+button:not([class*="rounded-full"]) {
+  border-radius: 0.625rem !important;
+}
+
 body {
   background-color: #1c1c1c;
   color: #e5e7eb;

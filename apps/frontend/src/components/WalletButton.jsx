@@ -80,6 +80,8 @@ export default function WalletButton() {
     }
   };
 
+  const transferNeedsLogin = transferState.error.toLowerCase().includes("sign in again");
+
   const btn = () => {
     if (profile?.avatar_url)
       return <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#3a322f]" />;
@@ -160,7 +162,19 @@ export default function WalletButton() {
                   disabled={transferState.loading}
                 />
               </label>
-              {transferState.error && <div className="text-xs text-red-400 bg-red-950/10 border border-red-900/30 rounded p-2">{transferState.error}</div>}
+              {transferState.error && (
+                <div className="text-xs text-red-400 bg-red-950/10 border border-red-900/30 rounded p-2">
+                  <p>{transferState.error}</p>
+                  {transferNeedsLogin && (
+                    <button
+                      onClick={() => { setTransferState(s => ({ ...s, open: false })); login(); }}
+                      className="mt-2 px-2.5 py-1 text-[11px] rounded bg-[#D89F55] hover:bg-[#f0c57a] text-[#23120A] font-semibold cursor-pointer transition border-0"
+                    >
+                      Sign in again
+                    </button>
+                  )}
+                </div>
+              )}
               {transferState.digest && <div className="text-xs text-green-400 bg-green-950/10 border border-green-900/30 rounded p-2 break-all">Sent: {transferState.digest}</div>}
             </div>
             <div className="flex items-center gap-2 justify-end mt-5">

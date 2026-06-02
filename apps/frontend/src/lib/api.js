@@ -64,6 +64,18 @@ export const paymentsApi = {
     });
     return r.data;
   },
+  getPurchased: async (buyerAddress = "") => {
+    const r = await API.get("/payments/purchased", {
+      params: buyerAddress ? { buyer_address: buyerAddress } : {},
+    });
+    return r.data;
+  },
+  access: async (datasetId, buyerAddress = "") => {
+    const r = await API.get(`/payments/access/${e(datasetId)}`, {
+      params: buyerAddress ? { buyer_address: buyerAddress } : {},
+    });
+    return r.data;
+  },
 };
 
 export const aiApi = {

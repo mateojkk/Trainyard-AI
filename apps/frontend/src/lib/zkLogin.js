@@ -184,8 +184,24 @@ async function loadZkLoginSigningContext() {
   const saltBigInt = BigInt("0x" + session.salt) & SALT_MASK;
   const keypair = Ed25519Keypair.fromSecretKey(pending.secretKey);
   const decodedJwt = decodeJwt(session.id_token);
+  await assertZkLoginSessionFresh(pending, decodedJwt);
   const sender = jwtToAddress(session.id_token, saltBigInt, false);
   return { pending, session, saltBigInt, keypair, decodedJwt, sender };
+}
+
+async function assertZkLoginSessionFresh(pending, decodedJwt) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const jwtExpiresAt = Number(decodedJwt.exp || 0);
+  if (!jwtExpiresAt || jwtExpiresAt <= nowSeconds + 60) {
+    throw new Error("Your zkLogin authorization expired. Please sign in again, then retry the USDC transfer.");
+  }
+
+  const { systemState } = await client.core.getCurrentSystemState();
+  const currentEpoch = BigInt(systemState.epoch);
+  const maxEpoch = BigInt(pending.maxEpoch);
+  if (currentEpoch > maxEpoch) {
+    throw new Error("Your zkLogin transaction session expired. Please sign in again, then retry.");
+  }
 }
 
 async function executeZkLoginTransaction(txBytes, auth) {
