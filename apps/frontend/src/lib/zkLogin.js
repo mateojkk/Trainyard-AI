@@ -92,6 +92,11 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   // objects are written during the transaction.
   const tx = new Transaction();
   tx.setSender(sender);
+  // Manually set gas price and budget to 0 for gasless stablecoin transfer.
+  // This skips the SDK's simulation step, which would fail because the
+  // zkLogin account has 0 SUI and the dry-run cannot select gas coins.
+  tx.setGasPrice(0);
+  tx.setGasBudget(0);
 
   // 1. Seller payment
   const sellerBalance = tx.balance({ balance: sellerAmount, type: USDC_COIN_TYPE });
