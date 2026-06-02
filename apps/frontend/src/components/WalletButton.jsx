@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useZkLogin } from "../context/useZkLogin";
 import { profilesApi, suiRpcApi } from "../lib/api";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
-import { LogOut, ChevronDown, KeyRound, Copy, Check, User, Wallet, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { LogOut, ChevronDown, KeyRound, Copy, Check, User, Wallet, Eye, EyeOff, AlertTriangle, Send } from "lucide-react";
 
 const PENDING_KEY = "trainyard.zklogin.pending";
 const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
@@ -14,7 +14,8 @@ export default function WalletButton() {
   const [profile, setProfile] = useState(null);
   const [balance, setBalance] = useState(null);
   const [exportState, setExportState] = useState({ open: false, key: "", error: "", revealed: false, copied: false });
-  const { account, isSessionActive, error, login, logout } = useZkLogin();
+  const [transferState, setTransferState] = useState({ open: false, to: "", amount: "", loading: false, error: "", digest: "" });
+  const { account, isSessionActive, error, login, logout, transferUsdc } = useZkLogin();
   const fetched = useRef(false);
 
   useEffect(() => {
@@ -62,6 +63,23 @@ export default function WalletButton() {
     });
   };
 
+  const handleTransferUsdc = async () => {
+    setTransferState((state) => ({ ...state, loading: true, error: "", digest: "" }));
+    try {
+      if (!isSessionActive) throw new Error("Please sign in again to re-enable transactions.");
+      const digest = await transferUsdc(transferState.to.trim(), transferState.amount);
+      setTransferState((state) => ({ ...state, loading: false, error: "", digest }));
+      const r = await suiRpcApi.getBalance(account.address, USDC_COIN_TYPE);
+      setBalance(r.result?.totalBalance || "0");
+    } catch (err) {
+      setTransferState((state) => ({
+        ...state,
+        loading: false,
+        error: err.response?.data?.detail || err.message || "Unable to transfer USDC.",
+      }));
+    }
+  };
+
   const btn = () => {
     if (profile?.avatar_url)
       return <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border border-[#3a322f]" />;
@@ -107,16 +125,58 @@ export default function WalletButton() {
               </div>
             </div>
             <Link to="/profile" onClick={() => setShowDropdown(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2f2f2f] transition"><User className="w-4 h-4" /> My Profile</Link>
-            <button onClick={handleExport} className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-300 hover:bg-[#2f2f2f] transition"><KeyRound className="w-4 h-4" /> Export Private Key</button>
+            <button onClick={() => setTransferState((state) => ({ ...state, open: true, error: "", digest: "" }))} className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-300 hover:bg-[#2f2f2f] transition"><Send className="w-4 h-4" /> Send USDC</button>
+            <button onClick={handleExport} className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-300 hover:bg-[#2f2f2f] transition"><KeyRound className="w-4 h-4" /> View Ephemeral Key</button>
             <button onClick={handleDisconnect} className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-950/20 hover:text-red-300 transition"><LogOut className="w-4 h-4" /> Disconnect</button>
           </div>
         </>
       )}
 
+      {transferState.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setTransferState(s => ({ ...s, open: false }))}>
+          <div className="bg-[#242424] border border-[#3a322f] rounded-lg shadow-xl w-full max-w-md mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-200 mb-2">Send USDC</h3>
+            <p className="text-xs text-gray-500 mb-4 font-sans">Move USDC from your Trainyard zkLogin address to another Sui address.</p>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[#f3e4cf]">Recipient address</span>
+                <input
+                  value={transferState.to}
+                  onChange={(e) => setTransferState(s => ({ ...s, to: e.target.value }))}
+                  className="mt-1 w-full bg-[#1c1c1c] border border-[#3a322f] rounded p-2 text-xs text-gray-200 font-mono outline-none focus:border-[#D89F55]"
+                  placeholder="0x..."
+                  disabled={transferState.loading}
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[#f3e4cf]">Amount USDC</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={transferState.amount}
+                  onChange={(e) => setTransferState(s => ({ ...s, amount: e.target.value }))}
+                  className="mt-1 w-full bg-[#1c1c1c] border border-[#3a322f] rounded p-2 text-xs text-gray-200 font-mono outline-none focus:border-[#D89F55]"
+                  disabled={transferState.loading}
+                />
+              </label>
+              {transferState.error && <div className="text-xs text-red-400 bg-red-950/10 border border-red-900/30 rounded p-2">{transferState.error}</div>}
+              {transferState.digest && <div className="text-xs text-green-400 bg-green-950/10 border border-green-900/30 rounded p-2 break-all">Sent: {transferState.digest}</div>}
+            </div>
+            <div className="flex items-center gap-2 justify-end mt-5">
+              <button onClick={() => setTransferState(s => ({ ...s, open: false }))} disabled={transferState.loading} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition cursor-pointer bg-transparent border-0">Close</button>
+              <button onClick={handleTransferUsdc} disabled={transferState.loading} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded bg-[#D89F55] hover:bg-[#f0c57a] disabled:opacity-60 text-[#23120A] font-semibold cursor-pointer transition border-0">
+                <Send className="w-3.5 h-3.5" />{transferState.loading ? "Sending..." : "Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {exportState.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setExportState(s => ({ ...s, open: false }))}>
           <div className="bg-[#242424] border border-[#3a322f] rounded-lg shadow-xl w-full max-w-md mx-4 p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-gray-200 mb-2">Export Private Key</h3>
+            <h3 className="text-sm font-semibold text-gray-200 mb-2">Ephemeral zkLogin Key</h3>
             {exportState.error ? (
               <>
                 <div className="flex items-start gap-2 bg-yellow-950/10 border border-yellow-900/30 p-3 rounded text-xs text-yellow-400 mb-4 font-sans leading-relaxed">
@@ -130,7 +190,7 @@ export default function WalletButton() {
               </>
             ) : (
               <>
-                <p className="text-xs text-gray-500 mb-4 font-sans">Import this key into any Sui wallet. Keep it secret, as anyone with it controls your funds.</p>
+                <p className="text-xs text-gray-500 mb-4 font-sans">This key signs Trainyard zkLogin transactions for this browser session. Use Send USDC to move funds to a normal wallet address.</p>
                 <div className="bg-[#1c1c1c] border border-[#3a322f] rounded p-3 mb-4">
                   <p className="text-xs font-mono break-all text-gray-300">{exportState.revealed ? exportState.key : exportState.key.slice(0, 12) + "••••••••••••••••"}</p>
                 </div>

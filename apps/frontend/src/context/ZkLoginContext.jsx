@@ -4,6 +4,7 @@ import {
   clearZkLoginSession,
   hydrateZkLoginAccount,
   signAndExecuteTransaction,
+  transferUsdcFromZkLogin,
   hasPendingZkLoginSession,
 } from "../lib/zkLogin";
 import { ZkLoginContext } from "./useZkLogin";
@@ -45,12 +46,18 @@ export function ZkLoginProvider({ children }) {
     return txDigest;
   }, []);
 
+  const transferUsdc = useCallback(async (recipientAddress, amountInUsdc) => {
+    const txDigest = await transferUsdcFromZkLogin(recipientAddress, amountInUsdc);
+    return txDigest;
+  }, []);
+
   const value = useMemo(() => ({
     account,
     isSessionActive,
     loading,
     error,
     signAndExecuteTransaction: signTx,
+    transferUsdc,
     login: async (customReturnTo) => {
       setError("");
       const targetPath = typeof customReturnTo === "string" ? customReturnTo : undefined;
@@ -67,7 +74,7 @@ export function ZkLoginProvider({ children }) {
       setIsSessionActive(false);
       setError("");
     },
-  }), [account, isSessionActive, loading, error, signTx]);
+  }), [account, isSessionActive, loading, error, signTx, transferUsdc]);
 
   return (
     <ZkLoginContext.Provider value={value}>

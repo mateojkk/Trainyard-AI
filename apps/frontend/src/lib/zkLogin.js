@@ -60,14 +60,8 @@ export function clearZkLoginSession() {
 }
 
 export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
-  const pending = loadPending();
-  if (!pending) throw new Error("No zkLogin session found. Please sign in again.");
-  const session = await authApi.me();
-  if (!session.authenticated || !session.id_token) throw new Error("Not authenticated");
-  const saltBigInt = BigInt("0x" + session.salt) & SALT_MASK;
-  const keypair = Ed25519Keypair.fromSecretKey(pending.secretKey);
-  const decodedJwt = decodeJwt(session.id_token);
-  const sender = jwtToAddress(session.id_token, saltBigInt, false);
+  const auth = await loadZkLoginSigningContext();
+  const sender = auth.sender;
   const priceInBaseUnits = toUsdcBaseUnits(priceInUsdc);
   const commissionAmount = priceInBaseUnits * 5n / 100n;
   const sellerAmount = priceInBaseUnits - commissionAmount;
@@ -139,6 +133,63 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     gasData: { ...data.gasData },
   });
 
+  return executeZkLoginTransaction(txBytes, auth);
+}
+
+export async function transferUsdcFromZkLogin(recipientAddress, amountInUsdc) {
+  const auth = await loadZkLoginSigningContext();
+  const amountInBaseUnits = toUsdcBaseUnits(amountInUsdc);
+  if (amountInBaseUnits < MIN_GASLESS_TRANSFER_UNITS) {
+    throw new Error("Gasless USDC transfers must be at least 0.01 USDC.");
+  }
+
+  const { balance } = await client.core.getBalance({ owner: auth.sender, coinType: USDC_COIN_TYPE });
+  const available = BigInt(balance.balance ?? 0);
+  if (available < amountInBaseUnits) {
+    const haveDec = (Number(available) / 1_000_000).toFixed(2);
+    const needDec = (Number(amountInBaseUnits) / 1_000_000).toFixed(2);
+    throw new Error(`Insufficient USDC: have ${haveDec}, need ${needDec}`);
+  }
+
+  const tx = new Transaction();
+  tx.setSender(auth.sender);
+  const transferBalance = tx.balance({ balance: amountInBaseUnits, type: USDC_COIN_TYPE });
+  tx.moveCall({
+    target: "0x2::balance::send_funds",
+    typeArguments: [USDC_COIN_TYPE],
+    arguments: [transferBalance, tx.pure.address(recipientAddress)],
+  });
+  tx.setGasPrice(0);
+  tx.setGasBudget(0n);
+  tx.setGasPayment([]);
+  await setGaslessExpiration(tx);
+
+  const txBytes = await tx.build({ client });
+  console.log("[zkLogin] Built USDC transfer transaction:", {
+    sender: auth.sender,
+    recipientAddress,
+    amountInBaseUnits: amountInBaseUnits.toString(),
+    gasData: { ...tx.getData().gasData },
+    expiration: tx.getData().expiration,
+  });
+
+  return executeZkLoginTransaction(txBytes, auth);
+}
+
+async function loadZkLoginSigningContext() {
+  const pending = loadPending();
+  if (!pending) throw new Error("No zkLogin session found. Please sign in again.");
+  const session = await authApi.me();
+  if (!session.authenticated || !session.id_token) throw new Error("Not authenticated");
+  const saltBigInt = BigInt("0x" + session.salt) & SALT_MASK;
+  const keypair = Ed25519Keypair.fromSecretKey(pending.secretKey);
+  const decodedJwt = decodeJwt(session.id_token);
+  const sender = jwtToAddress(session.id_token, saltBigInt, false);
+  return { pending, session, saltBigInt, keypair, decodedJwt, sender };
+}
+
+async function executeZkLoginTransaction(txBytes, auth) {
+  const { pending, session, saltBigInt, keypair, decodedJwt } = auth;
   const { signature: userSignature } = await keypair.signTransaction(txBytes);
   console.log("[zkLogin] Prover request payload:", {
     maxEpoch: String(pending.maxEpoch),
