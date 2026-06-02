@@ -85,23 +85,16 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
   // Build gasless stablecoin PTB using address balance intents.
-  // Each tx.balance() call creates an independent withdrawal reservation;
-  // the SDK resolves both via 0x2::balance::redeem_funds during signing.
+  // Each tx.balance() call creates a Balance<T> input that the SDK resolves
+  // during simulation. The SDK detects this as an eligible gasless stablecoin
+  // transfer and sets gasPrice = 0, gasBudget = 0, and ValidDuring expiration.
+  // No Coin objects are created, satisfying the gasless requirement that no
+  // objects are written during the transaction.
   const tx = new Transaction();
   tx.setSender(sender);
 
   // 1. Seller payment
-  const sellerWithdrawal = tx.withdrawal({ amount: sellerAmount, type: USDC_COIN_TYPE });
-  const [sellerCoin] = tx.moveCall({
-    target: "0x2::coin::redeem_funds",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [sellerWithdrawal],
-  });
-  const [sellerBalance] = tx.moveCall({
-    target: "0x2::coin::into_balance",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [sellerCoin],
-  });
+  const sellerBalance = tx.balance({ balance: sellerAmount, type: USDC_COIN_TYPE });
   tx.moveCall({
     target: "0x2::balance::send_funds",
     typeArguments: [USDC_COIN_TYPE],
@@ -109,17 +102,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   });
 
   // 2. Platform commission payment
-  const commissionWithdrawal = tx.withdrawal({ amount: commissionAmount, type: USDC_COIN_TYPE });
-  const [commissionCoin] = tx.moveCall({
-    target: "0x2::coin::redeem_funds",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [commissionWithdrawal],
-  });
-  const [commissionBalance] = tx.moveCall({
-    target: "0x2::coin::into_balance",
-    typeArguments: [USDC_COIN_TYPE],
-    arguments: [commissionCoin],
-  });
+  const commissionBalance = tx.balance({ balance: commissionAmount, type: USDC_COIN_TYPE });
   tx.moveCall({
     target: "0x2::balance::send_funds",
     typeArguments: [USDC_COIN_TYPE],
