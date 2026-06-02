@@ -86,17 +86,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
 
   // Build gasless stablecoin PTB using address balance intents.
   // Each tx.balance() call creates a Balance<T> input that the SDK resolves
-  // during simulation. The SDK detects this as an eligible gasless stablecoin
+  // during build. The SDK detects this as an eligible gasless stablecoin
   // transfer and sets gasPrice = 0, gasBudget = 0, and ValidDuring expiration.
   // No Coin objects are created, satisfying the gasless requirement that no
   // objects are written during the transaction.
   const tx = new Transaction();
   tx.setSender(sender);
-  // Manually set gas price and budget to 0 for gasless stablecoin transfer.
-  // This skips the SDK's simulation step, which would fail because the
-  // zkLogin account has 0 SUI and the dry-run cannot select gas coins.
-  tx.setGasPrice(0);
-  tx.setGasBudget(0);
 
   // 1. Seller payment
   const sellerBalance = tx.balance({ balance: sellerAmount, type: USDC_COIN_TYPE });
@@ -113,10 +108,34 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     typeArguments: [USDC_COIN_TYPE],
     arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)],
   });
-  
-  // Build the transaction once to resolve and retrieve bytes.
-  // The GraphQL client / SDK automatically detects this eligible gasless stablecoin transfer
-  // and resolves the gasPrice = 0, gasBudget = 0, and ValidDuring expiration during simulation.
+
+  // Resolve intents (tx.balance()) first, then manually set gas/expiration
+  // to completely bypass the SDK's simulation pipeline which can't handle
+  // zkLogin accounts with 0 SUI.
+  await tx.prepareForSerialization({ client });
+  tx.setGasPrice(0);
+  tx.setGasBudget(0);
+  tx.setGasPayment([]);
+
+  // Set ValidDuring expiration manually
+  const [chainIdRes, systemStateRes] = await Promise.all([
+    client.core.getChainIdentifier(),
+    client.core.getCurrentSystemState(),
+  ]);
+  const epoch = BigInt(systemStateRes.systemState.epoch);
+  tx.getData().expiration = {
+    $kind: "ValidDuring",
+    ValidDuring: {
+      minEpoch: String(epoch),
+      maxEpoch: String(epoch + 1n),
+      minTimestamp: null,
+      maxTimestamp: null,
+      chain: chainIdRes.chainIdentifier,
+      nonce: (Math.random() * 4294967296) >>> 0,
+    },
+  };
+
+  // Build - fully resolved, skips the gas/expiration plugin
   const txBytes = await tx.build({ client });
   console.log("[zkLogin] Built transaction data:", {
     expiration: tx.getData().expiration,
