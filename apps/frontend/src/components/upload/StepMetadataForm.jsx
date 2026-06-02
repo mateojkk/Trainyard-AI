@@ -89,7 +89,7 @@ export default function StepMetadataForm({
               <label className="text-[#f3e4cf] block font-semibold">Price (USDC)</label>
               <input
                 type="number"
-                min="0.01"
+                min="0.20"
                 step="0.01"
                 required
                 value={metadata.price_sui}

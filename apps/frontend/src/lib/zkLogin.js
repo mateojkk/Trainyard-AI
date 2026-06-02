@@ -2,7 +2,6 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Transaction } from "@mysten/sui/transactions";
-import { bcs } from "@mysten/sui/bcs";
 import { authApi, zkproverApi, suiRpcApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
 
@@ -11,6 +10,8 @@ const EPOCH_TTL = Number(import.meta.env.VITE_ZKLOGIN_EPOCH_TTL || 2);
 const SUI_RPC_URL = import.meta.env.VITE_SUI_RPC_URL;
 const PLATFORM_ADDRESS = import.meta.env.VITE_PLATFORM_ADDRESS || "";
 const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
+const USDC_DECIMALS = 6;
+const MIN_GASLESS_TRANSFER_UNITS = 10_000n; // 0.01 USDC
 
 // zkLogin requires salt < 2^128. Existing salts may be 256-bit hex; mask to 128 bits.
 const SALT_MASK = (1n << 128n) - 1n;
@@ -67,9 +68,12 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const keypair = Ed25519Keypair.fromSecretKey(pending.secretKey);
   const decodedJwt = decodeJwt(session.id_token);
   const sender = jwtToAddress(session.id_token, saltBigInt, false);
-  const priceInBaseUnits = BigInt(Math.round(priceInUsdc * 1_000_000));
+  const priceInBaseUnits = toUsdcBaseUnits(priceInUsdc);
   const commissionAmount = priceInBaseUnits * 5n / 100n;
   const sellerAmount = priceInBaseUnits - commissionAmount;
+  if (sellerAmount < MIN_GASLESS_TRANSFER_UNITS || commissionAmount < MIN_GASLESS_TRANSFER_UNITS) {
+    throw new Error("Gasless USDC purchases require each transfer leg to be at least 0.01 USDC. Minimum listing price is 0.20 USDC.");
+  }
 
   // Pre-flight balance check via gRPC core API
   try {
@@ -114,66 +118,27 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)],
   });
 
-  // Resolve intents — reads on-chain balances to decide Path 1 vs Path 2
-  await tx.prepareForSerialization({ client });
-  console.log("[zkLogin] Resolved commands:", tx.getData().commands.map((c) => {
-    if (c.$kind !== "MoveCall") return c.$kind;
-    const pkg = c.MoveCall.package.replace("0x", "").replace(/^0+/, "");
-    return `0x${pkg}::${c.MoveCall.module}::${c.MoveCall.function}`;
-  }));
-
-  // Manually set zero gas for gasless eligibility
+  // Gasless stablecoin eligibility requires zero gas and no gas payment.
   tx.setGasPrice(0);
   tx.setGasBudget(0n);
   tx.setGasPayment([]);
 
-  // Set ValidDuring expiration (required when gasPayment is empty)
-  const [chainIdRes, systemStateRes] = await Promise.all([
-    client.core.getChainIdentifier(),
-    client.core.getCurrentSystemState(),
-  ]);
-  const epoch = BigInt(systemStateRes.systemState.epoch);
-  tx.getData().expiration = {
-    $kind: "ValidDuring",
-    ValidDuring: {
-      minEpoch: String(epoch),
-      maxEpoch: String(epoch + 1n),
-      minTimestamp: null,
-      maxTimestamp: null,
-      chain: chainIdRes.chainIdentifier,
-      nonce: (Math.random() * 4294967296) >>> 0,
-    },
-  };
-
-  // Serialize directly via BCS, skipping both the gRPC gas-selection plugin
-  // (which fails on 0 SUI) and TransactionDataBuilder.build() (which rejects
-  // gasBudget = 0n as falsy). The fullnode validates at execution time.
+  // Let the SDK resolve tx.balance() into FundsWithdrawal + send_funds calls and
+  // serialize the normalized BCS shape. Manual BCS assembly leaks SDK-internal
+  // JSON shapes into the low-level serializer.
+  const txBytes = await tx.build({ client });
   const data = tx.getData();
-  const txBytes = bcs.TransactionData.serialize({
-    V1: {
-      sender: data.sender,
-      expiration: data.expiration,
-      gasData: {
-        payment: data.gasData.payment ?? [],
-        owner: data.gasData.owner ?? data.sender,
-        price: BigInt(data.gasData.price ?? 0),
-        budget: BigInt(data.gasData.budget ?? 0),
-      },
-      kind: {
-        ProgrammableTransaction: {
-          inputs: data.inputs,
-          commands: data.commands,
-        },
-      },
-    },
-  }).toBytes();
+  console.log("[zkLogin] Resolved commands:", data.commands.map((c) => {
+    if (c.$kind !== "MoveCall") return c.$kind;
+    const pkg = c.MoveCall.package.replace("0x", "").replace(/^0+/, "");
+    return `0x${pkg}::${c.MoveCall.module}::${c.MoveCall.function}`;
+  }));
   console.log("[zkLogin] Built transaction data (gasless):", {
-    expiration: tx.getData().expiration,
-    gasData: { ...tx.getData().gasData },
+    expiration: data.expiration,
+    gasData: { ...data.gasData },
   });
 
-  let bytes, userSignature;
-  ({ bytes, signature: userSignature } = await keypair.signTransaction(txBytes));
+  const { signature: userSignature } = await keypair.signTransaction(txBytes);
   console.log("[zkLogin] Prover request payload:", {
     maxEpoch: String(pending.maxEpoch),
     extendedEphemeralPublicKey: pending.extendedEphemeralPublicKey,
@@ -208,18 +173,19 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     maxEpoch: Number(pending.maxEpoch),
     userSignature,
   });
-  const transactionBytes = Uint8Array.from(atob(bytes), (c) => c.charCodeAt(0));
   const result = await client.core.executeTransaction({
-    transaction: transactionBytes, signatures: [zkLoginSignature],
+    transaction: txBytes, signatures: [zkLoginSignature],
+    include: { effects: true, balanceChanges: true },
   });
   console.log("[zkLogin] Transaction execution result:", JSON.stringify(result));
   
-  if (!result) throw new Error("Transaction failed: No execution data returned");
-  if (!result.status?.success) {
-    const errorMsg = result.status?.error?.message || JSON.stringify(result.status?.error) || "Unknown error";
+  const submittedTx = result?.Transaction ?? result?.FailedTransaction;
+  if (!submittedTx) throw new Error("Transaction failed: No execution data returned");
+  if (!submittedTx.status?.success) {
+    const errorMsg = submittedTx.status?.error?.message || JSON.stringify(submittedTx.status?.error) || "Unknown error";
     throw new Error(`Transaction failed: ${errorMsg}`);
   }
-  return result.digest;
+  return submittedTx.digest;
 }
 
 async function getMaxEpoch() {
@@ -244,4 +210,14 @@ export function hasPendingZkLoginSession() {
 
 function getReturnToPath() {
   return `${window.location.pathname}${window.location.search}`;
+}
+
+function toUsdcBaseUnits(amount) {
+  const [wholeRaw, fractionRaw = ""] = String(amount).trim().split(".");
+  const whole = wholeRaw || "0";
+  const fraction = fractionRaw.padEnd(USDC_DECIMALS, "0").slice(0, USDC_DECIMALS);
+  if (!/^\d+$/.test(whole) || !/^\d+$/.test(fraction)) {
+    throw new Error("Invalid USDC amount.");
+  }
+  return BigInt(whole) * 1_000_000n + BigInt(fraction);
 }

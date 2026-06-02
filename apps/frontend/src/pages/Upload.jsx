@@ -11,6 +11,7 @@ import StepSuccess from "../components/upload/StepSuccess";
 import { ChevronRight } from "lucide-react";
 
 const ALLOWED_EXTENSIONS = ["zip", "csv", "json", "txt"];
+const MIN_GASLESS_PRICE_USDC = 0.2;
 
 export default function Upload() {
   const { account } = useZkLogin();
@@ -21,7 +22,7 @@ export default function Upload() {
   const [file, setFile] = useState(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const [statsAndPreview, setStatsAndPreview] = useState(null);
-  const [metadata, setMetadata] = useState({ title: "", description: "", category: "nlp", price_sui: 0.1, tags: "" });
+  const [metadata, setMetadata] = useState({ title: "", description: "", category: "nlp", price_sui: MIN_GASLESS_PRICE_USDC, tags: "" });
   const [uploadSteps, setUploadSteps] = useState([
     { id: 0, label: "Encrypting dataset locally", status: "idle" },
     { id: 1, label: "Uploading encrypted data to Walrus", status: "idle" },
@@ -90,6 +91,9 @@ export default function Upload() {
 
     try {
       const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "";
+      if (Number(metadata.price_sui) < MIN_GASLESS_PRICE_USDC) {
+        throw new Error(`Minimum gasless USDC price is ${MIN_GASLESS_PRICE_USDC.toFixed(2)}.`);
+      }
       
       updateStatus(0, "loading");
       const { keyBase64 } = await generateKey();

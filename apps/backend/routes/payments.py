@@ -1,8 +1,9 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from ..database import get_db
 from ..services import sui as sui_service
+from ..services.auth_sessions import read_session, SESSION_COOKIE_NAME
 
 logger = logging.getLogger("payments_router")
 router = APIRouter()
@@ -13,8 +14,17 @@ class VerifyPaymentRequest(BaseModel):
     tx_digest: str
     blob_id: str
 
+def _session(request):
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    session = read_session(token)
+    if not session or not session.get("sub"):
+        raise HTTPException(status_code=401, detail="Invalid session")
+    return session
+
 @router.post("/verify")
-async def verify_payment(payload: VerifyPaymentRequest):
+async def verify_payment(payload: VerifyPaymentRequest, request: Request):
     """
     Verifies a Sui mainnet USDC payment transaction.
     If valid, increments the purchase count and returns the decryption key.
@@ -24,14 +34,32 @@ async def verify_payment(payload: VerifyPaymentRequest):
         raise HTTPException(status_code=500, detail="Database not initialized")
 
     try:
+        _session(request)
+
         # 1. Retrieve dataset details from Supabase
         response = client.table("datasets").select("*").eq("id", payload.dataset_id).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Dataset listing not found")
         dataset = response.data[0]
 
+        if payload.blob_id != dataset.get("blob_id"):
+            logger.warning(
+                "Payment verification blob mismatch: payload=%s dataset=%s",
+                payload.blob_id,
+                dataset.get("blob_id"),
+            )
+            return {
+                "success": False,
+                "error": "Payment verification failed. Check transaction details."
+            }
+
         # 2. Verify USDC payment on Sui network
-        is_verified = await sui_service.verify_payment(payload.tx_digest, dataset["price_sui"])
+        is_verified = await sui_service.verify_payment(
+            payload.tx_digest,
+            dataset["price_sui"],
+            payload.buyer_address,
+            dataset["seller_address"],
+        )
         if not is_verified:
             logger.warning(f"Payment verification failed for transaction digest: {payload.tx_digest}")
             return {
@@ -40,7 +68,7 @@ async def verify_payment(payload: VerifyPaymentRequest):
             }
 
         # 3. Retrieve decryption key from secure keys table
-        key_response = client.table("keys").select("*").eq("blob_id", payload.blob_id).execute()
+        key_response = client.table("keys").select("*").eq("blob_id", dataset["blob_id"]).execute()
         if not key_response.data:
             logger.error(f"Decryption key not found for blob ID: {payload.blob_id}")
             raise HTTPException(status_code=500, detail="Dataset decryption key is missing on server")

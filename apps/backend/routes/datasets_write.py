@@ -9,6 +9,7 @@ logger = logging.getLogger("datasets_write")
 router = APIRouter()
 
 ALLOWED_TYPES = {"zip", "csv", "json", "txt"}
+MIN_GASLESS_PRICE_USDC = 0.20
 
 def _session(request):
     token = request.cookies.get(SESSION_COOKIE_NAME)
@@ -23,6 +24,7 @@ async def upload_blob(request: Request, file: UploadFile = File(...)):
     Receives encrypted bytes from the client and uploads them to Walrus.
     """
     try:
+        _session(request)
         content_length = request.headers.get("content-length")
         MAX_SIZE = 10 * 1024 * 1024 * 1024  # 10 GB
         if content_length and int(content_length) > MAX_SIZE:
@@ -50,6 +52,8 @@ async def upload_blob(request: Request, file: UploadFile = File(...)):
             "blob_id": blob_id,
             "walrus_explorer_url": f"https://walruscan.com/mainnet/blob/{blob_id}"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in upload-blob: {str(e)}")
         raise HTTPException(
@@ -63,6 +67,7 @@ async def upload_preview(request: Request, preview: str = Form(...)):
     Receives the unencrypted preview text from the client and uploads it to Walrus.
     """
     try:
+        _session(request)
         if not preview:
             raise HTTPException(status_code=400, detail="Empty preview text")
             
@@ -74,6 +79,8 @@ async def upload_preview(request: Request, preview: str = Form(...)):
         return {
             "blob_id": blob_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in upload-preview: {str(e)}")
         raise HTTPException(
@@ -109,6 +116,11 @@ async def create_listing(
         MAX_SIZE = 10 * 1024 * 1024 * 1024  # 10 GB
         if int(file_size_bytes) > MAX_SIZE:
             raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+        if float(price_sui) < MIN_GASLESS_PRICE_USDC:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Minimum gasless USDC price is {MIN_GASLESS_PRICE_USDC:.2f}.",
+            )
 
         try:
             parsed_tags = json.loads(tags)
@@ -152,6 +164,8 @@ async def create_listing(
         logger.info(f"Listing created in Supabase for blob {blob_id}.")
         return inserted_listing
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to create listing in Supabase: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database insert failed: {str(e)}")
