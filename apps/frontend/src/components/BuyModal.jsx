@@ -15,6 +15,7 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [decryptionKey, setDecryptionKey] = useState("");
+  const [decryptedBlob, setDecryptedBlob] = useState(null);
   const [verificationResult, setVerificationResult] = useState(null);
   if (!isOpen) return null;
 
@@ -25,9 +26,20 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
     login(returnTo);
   };
 
+  const downloadDecryptedFile = (blob) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = dataset.file_name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handlePurchase = async () => {
     if (!account) return;
-    setLoading(true); setError(null); setSuccess(false); setVerificationResult(null);
+    setLoading(true); setError(null); setSuccess(false); setVerificationResult(null); setDecryptedBlob(null);
     try {
       setStatusStep("Sending gasless USDC payment via zkLogin...");
       const txDigest = await signAndExecuteTransaction(dataset.price_sui, dataset.seller_address);
@@ -47,9 +59,8 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
         setVerificationResult(verifyRes);
       } else setVerificationResult({ match: true, details: "Verified listing metadata match (size, file type)." });
       setStatusStep("Saving decrypted dataset to device...");
-      const url = URL.createObjectURL(decryptedBlob);
-      const link = document.createElement("a"); link.href = url; link.download = dataset.file_name;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+      setDecryptedBlob(decryptedBlob);
+      downloadDecryptedFile(decryptedBlob);
       setSuccess(true);
     } catch (err) {
       console.error(err);
@@ -108,7 +119,12 @@ export default function BuyModal({ isOpen, onClose, dataset, previewText }) {
             </>
           ) : (
             <div className="space-y-6">
-              <BuyModalSuccess decryptionKey={decryptionKey} onClose={onClose} />
+              <BuyModalSuccess
+                decryptionKey={decryptionKey}
+                fileName={dataset.file_name}
+                onDownload={() => decryptedBlob && downloadDecryptedFile(decryptedBlob)}
+                onClose={onClose}
+              />
               {verificationResult && (
                 <div className={`border rounded p-4 text-xs flex items-start gap-3 ${verificationResult.match ? "bg-green-950/10 border-green-900/30 text-green-400" : "bg-red-950/20 border-red-900/40 text-red-400"}`}>
                   {verificationResult.match ? <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />}

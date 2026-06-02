@@ -22,6 +22,9 @@ def _session(request):
 class PriceUpdateRequest(BaseModel):
     price_sui: float
 
+class SellerAddressSyncRequest(BaseModel):
+    seller_address: str
+
 @router.post("/upload-blob")
 async def upload_blob(request: Request, file: UploadFile = File(...)):
     """
@@ -209,3 +212,30 @@ async def update_listing_price(dataset_id: str, payload: PriceUpdateRequest, req
     except Exception as e:
         logger.error(f"Failed to update listing price: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Price update failed: {str(e)}")
+
+@router.post("/sync-seller-address")
+async def sync_seller_address(payload: SellerAddressSyncRequest, request: Request):
+    client = get_db()
+    if not client:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    session = _session(request)
+    seller_address = payload.seller_address.strip().lower()
+    if not seller_address.startswith("0x") or len(seller_address) != 66:
+        raise HTTPException(status_code=400, detail="Invalid Sui seller address")
+
+    try:
+        response = (
+            client.table("datasets")
+            .update({"seller_address": seller_address})
+            .eq("seller_sub", session["sub"])
+            .neq("seller_address", seller_address)
+            .execute()
+        )
+        updated_count = len(response.data or [])
+        if updated_count:
+            logger.info("Synced %s dataset seller address(es) for sub=%s", updated_count, session["sub"])
+        return {"success": True, "updated_count": updated_count, "seller_address": seller_address}
+    except Exception as e:
+        logger.error(f"Failed to sync seller address: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Seller address sync failed: {str(e)}")

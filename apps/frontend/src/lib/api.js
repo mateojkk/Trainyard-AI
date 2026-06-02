@@ -50,6 +50,10 @@ export const datasetsApi = {
     const r = await API.patch(`/datasets/${e(id)}/price`, { price_sui: priceSui });
     return r.data;
   },
+  syncSellerAddress: async (sellerAddress) => {
+    const r = await API.post("/datasets/sync-seller-address", { seller_address: sellerAddress });
+    return r.data;
+  },
 };
 
 export const paymentsApi = {

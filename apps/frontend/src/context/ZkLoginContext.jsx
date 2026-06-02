@@ -7,6 +7,7 @@ import {
   transferUsdcFromZkLogin,
   hasPendingZkLoginSession,
 } from "../lib/zkLogin";
+import { datasetsApi } from "../lib/api";
 import { ZkLoginContext } from "./useZkLogin";
 
 export function ZkLoginProvider({ children }) {
@@ -29,6 +30,11 @@ export function ZkLoginProvider({ children }) {
         if (mounted) {
           setAccount(sessionAccount);
           setIsSessionActive(!!sessionAccount && hasPendingZkLoginSession());
+        }
+        if (sessionAccount?.address) {
+          datasetsApi.syncSellerAddress(sessionAccount.address).catch((syncErr) => {
+            console.warn("Seller address sync failed:", syncErr);
+          });
         }
       } catch (err) {
         if (mounted && err?.response?.status !== 401) setError(err.message || "zkLogin failed.");
