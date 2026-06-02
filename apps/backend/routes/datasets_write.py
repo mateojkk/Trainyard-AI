@@ -1,6 +1,7 @@
 import json
 import logging
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Request
+from pydantic import BaseModel
 from ..database import get_db
 from ..services import walrus as walrus_service
 from ..services.auth_sessions import read_session, SESSION_COOKIE_NAME
@@ -17,6 +18,9 @@ def _session(request):
     s = read_session(token)
     if not s or not s.get("sub"): raise HTTPException(status_code=401, detail="Invalid session")
     return s
+
+class PriceUpdateRequest(BaseModel):
+    price_sui: float
 
 @router.post("/upload-blob")
 async def upload_blob(request: Request, file: UploadFile = File(...)):
@@ -169,3 +173,39 @@ async def create_listing(
     except Exception as e:
         logger.error(f"Failed to create listing in Supabase: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database insert failed: {str(e)}")
+
+@router.patch("/{dataset_id}/price")
+async def update_listing_price(dataset_id: str, payload: PriceUpdateRequest, request: Request):
+    client = get_db()
+    if not client:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    session = _session(request)
+    if payload.price_sui < MIN_GASLESS_PRICE_USDC:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Minimum gasless USDC price is {MIN_GASLESS_PRICE_USDC:.2f}.",
+        )
+
+    try:
+        existing = client.table("datasets").select("id,seller_sub").eq("id", dataset_id).execute()
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Dataset listing not found")
+        if existing.data[0].get("seller_sub") != session["sub"]:
+            raise HTTPException(status_code=403, detail="Only the seller can edit this listing price")
+
+        response = (
+            client.table("datasets")
+            .update({"price_sui": float(payload.price_sui)})
+            .eq("id", dataset_id)
+            .execute()
+        )
+        if not response.data:
+            refreshed = client.table("datasets").select("*").eq("id", dataset_id).execute()
+            return refreshed.data[0] if refreshed.data else {"id": dataset_id, "price_sui": payload.price_sui}
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update listing price: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Price update failed: {str(e)}")

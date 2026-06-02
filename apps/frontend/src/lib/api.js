@@ -46,6 +46,10 @@ export const datasetsApi = {
     });
     return r.data;
   },
+  updatePrice: async (id, priceSui) => {
+    const r = await API.patch(`/datasets/${e(id)}/price`, { price_sui: priceSui });
+    return r.data;
+  },
 };
 
 export const paymentsApi = {

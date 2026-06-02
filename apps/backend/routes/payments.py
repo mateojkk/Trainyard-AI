@@ -14,6 +14,8 @@ class VerifyPaymentRequest(BaseModel):
     tx_digest: str
     blob_id: str
 
+PAYMENT_RECEIPTS_TABLE = "payment_receipts"
+
 def _session(request):
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
@@ -53,6 +55,19 @@ async def verify_payment(payload: VerifyPaymentRequest, request: Request):
                 "error": "Payment verification failed. Check transaction details."
             }
 
+        existing_receipt = (
+            client.table(PAYMENT_RECEIPTS_TABLE)
+            .select("tx_digest")
+            .eq("tx_digest", payload.tx_digest)
+            .execute()
+        )
+        if existing_receipt.data:
+            logger.warning("Rejected reused payment digest: %s", payload.tx_digest)
+            return {
+                "success": False,
+                "error": "This payment transaction has already been used."
+            }
+
         # 2. Verify USDC payment on Sui network
         is_verified = await sui_service.verify_payment(
             payload.tx_digest,
@@ -66,6 +81,23 @@ async def verify_payment(payload: VerifyPaymentRequest, request: Request):
                 "success": False,
                 "error": "Payment verification failed. Check transaction details."
             }
+
+        try:
+            client.table(PAYMENT_RECEIPTS_TABLE).insert({
+                "tx_digest": payload.tx_digest,
+                "dataset_id": payload.dataset_id,
+                "buyer_address": payload.buyer_address,
+                "seller_address": dataset["seller_address"],
+                "price_sui": float(dataset["price_sui"]),
+            }).execute()
+        except Exception as receipt_error:
+            if "duplicate" in str(receipt_error).lower() or "23505" in str(receipt_error):
+                logger.warning("Rejected concurrently reused payment digest: %s", payload.tx_digest)
+                return {
+                    "success": False,
+                    "error": "This payment transaction has already been used."
+                }
+            raise
 
         # 3. Retrieve decryption key from secure keys table
         key_response = client.table("keys").select("*").eq("blob_id", dataset["blob_id"]).execute()

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { datasetsApi } from "../lib/api";
+import { useZkLogin } from "../context/useZkLogin";
 import { fetchPreview } from "../lib/walrus";
 import DatasetInfo from "../components/DatasetInfo";
 import DatasetStats from "../components/DatasetStats";
@@ -9,6 +10,7 @@ import { ArrowLeft, Info } from "lucide-react";
 
 export default function Dataset() {
   const { id } = useParams();
+  const { account } = useZkLogin();
   const [searchParams, setSearchParams] = useSearchParams();
   const [dataset, setDataset] = useState(null);
   const [previewText, setPreviewText] = useState("");
@@ -87,6 +89,12 @@ export default function Dataset() {
     );
   }
 
+  const isSeller = !!account?.sub && account.sub === dataset.seller_sub;
+
+  const handlePriceUpdated = (updatedDataset) => {
+    setDataset((current) => ({ ...current, ...updatedDataset }));
+  };
+
   return (
     <div className="space-y-6">
       <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-[#f3e4cf] hover:text-brand-blue transition duration-150">
@@ -96,7 +104,12 @@ export default function Dataset() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-start">
         <DatasetInfo dataset={dataset} previewText={previewText} loadingPreview={loadingPreview} />
-        <DatasetStats dataset={dataset} onBuyClick={() => setBuyModalOpen(true)} />
+        <DatasetStats
+          dataset={dataset}
+          isSeller={isSeller}
+          onBuyClick={() => setBuyModalOpen(true)}
+          onPriceUpdated={handlePriceUpdated}
+        />
       </div>
 
       {buyModalOpen && (

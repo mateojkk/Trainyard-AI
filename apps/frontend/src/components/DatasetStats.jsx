@@ -1,22 +1,92 @@
-import { FileSpreadsheet, Lock, ArrowUpRight, Database, Download, User } from "lucide-react";
+import { useState } from "react";
+import { FileSpreadsheet, Lock, ArrowUpRight, Database, Download, User, Pencil, Save, X } from "lucide-react";
+import { datasetsApi } from "../lib/api";
 import { formatBytes } from "../lib/sui";
 import { PAYMENT_SYMBOL, formatPaymentAmount } from "../lib/payments";
 import styles from "./css/DatasetStats.module.css";
 
-export default function DatasetStats({ dataset, onBuyClick }) {
+const MIN_GASLESS_PRICE_USDC = 0.2;
+
+export default function DatasetStats({ dataset, isSeller = false, onBuyClick, onPriceUpdated }) {
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceDraft, setPriceDraft] = useState(formatPaymentAmount(dataset.price_sui));
+  const [savingPrice, setSavingPrice] = useState(false);
+  const [priceError, setPriceError] = useState("");
+
+  const startEditingPrice = () => {
+    setPriceDraft(formatPaymentAmount(dataset.price_sui));
+    setPriceError("");
+    setEditingPrice(true);
+  };
+
+  const savePrice = async () => {
+    const nextPrice = Number(priceDraft);
+    if (!Number.isFinite(nextPrice) || nextPrice < MIN_GASLESS_PRICE_USDC) {
+      setPriceError(`Minimum gasless price is ${MIN_GASLESS_PRICE_USDC.toFixed(2)} ${PAYMENT_SYMBOL}.`);
+      return;
+    }
+
+    setSavingPrice(true);
+    setPriceError("");
+    try {
+      const updated = await datasetsApi.updatePrice(dataset.id, nextPrice);
+      onPriceUpdated?.(updated);
+      setEditingPrice(false);
+    } catch (err) {
+      setPriceError(err.response?.data?.detail || err.message || "Unable to update price.");
+    } finally {
+      setSavingPrice(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className={styles.card}>
         <div className={styles.hero}>
           <span className={styles.licenseLabel}>Dataset Access License</span>
-          <div className={styles.price}>
-            {formatPaymentAmount(dataset.price_sui)}
-            <span className={styles.priceLabel}>{PAYMENT_SYMBOL}</span>
-          </div>
-          <button onClick={onBuyClick} className={styles.buyBtn}>
-            <Lock className="w-4 h-4" />
-            Buy and Decrypt
-          </button>
+          {editingPrice ? (
+            <div className={styles.priceEditor}>
+              <div className={styles.priceInputWrap}>
+                <input
+                  type="number"
+                  min="0.20"
+                  step="0.01"
+                  value={priceDraft}
+                  onChange={(event) => setPriceDraft(event.target.value)}
+                  className={styles.priceInput}
+                  disabled={savingPrice}
+                />
+                <span>{PAYMENT_SYMBOL}</span>
+              </div>
+              <div className={styles.priceActions}>
+                <button type="button" onClick={savePrice} disabled={savingPrice} className={styles.iconBtn} title="Save price">
+                  <Save className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => setEditingPrice(false)} disabled={savingPrice} className={styles.iconBtn} title="Cancel">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {priceError && <p className={styles.priceError}>{priceError}</p>}
+            </div>
+          ) : (
+            <div className={styles.priceLine}>
+              <div className={styles.price}>
+                {formatPaymentAmount(dataset.price_sui)}
+                <span className={styles.priceLabel}>{PAYMENT_SYMBOL}</span>
+              </div>
+              {isSeller && (
+                <button type="button" onClick={startEditingPrice} className={styles.editBtn} title="Edit price">
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {!isSeller && (
+            <button onClick={onBuyClick} className={styles.buyBtn}>
+              <Lock className="w-4 h-4" />
+              Buy and Decrypt
+            </button>
+          )}
         </div>
 
         <div className={styles.details}>
