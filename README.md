@@ -1,40 +1,197 @@
-## trainyard ai
+# Trainyard AI
 
-the people whose data trained the models powering today's ai got paid nothing.
+Trainyard AI is a decentralized marketplace for licensed AI training data.
 
-the new york times is suing openai. getty is suing stability ai. artists are suing midjourney. the era of scraping data without permission is ending, and the market for licensed ai training data is being created right now, in real time, through litigation. trainyard is the infrastructure for what comes next.
+The core idea is simple: people and organizations with valuable datasets should be able to upload once, prove where the data lives, and get paid every time someone buys access. Buyers get a normal marketplace experience, while the storage, settlement, and access control are backed by Sui, Walrus, and verified USDC payments.
 
-it is a marketplace where anyone who has data gets paid directly for it. a medical research lab with 80,000 annotated scans. a photographer collective with years of labeled images. a university nlp group that spent three years building a multilingual corpus. they upload once. every time someone buys, they earn. no middlemen, no contracts, no waiting 90 days for a wire transfer.
+Built for the **Tatum x Build on Sui with Walrus Hackathon**.
 
+## The Problem
 
-## how it works
+The data economy behind AI is changing fast. Publishers, artists, researchers, and data owners are pushing back against unlicensed scraping, and AI companies increasingly need clean, permissioned, provenance-aware data sources.
 
-contributors connect a sui wallet, upload their dataset, and set a price. the file encrypts in the browser before it leaves their machine — trainyard never sees the raw data. the encrypted blob goes to walrus mainnet where it lives permanently, content-addressed, owned by no one. the listing goes live with an ai-generated description and a low-resolution preview so buyers can evaluate the data without getting it for free.
+Trainyard AI is infrastructure for that market: a place where dataset owners can sell access directly, without middlemen, opaque contracts, or delayed payouts.
 
-buyers browse the marketplace, see the preview, and pay in usdc. no gas fees. no sui required. no wallet complexity. the payment clears, the decryption key releases, the file downloads and decrypts locally. start to finish it feels like buying something on gumroad, except the dataset lives on decentralized storage forever and the seller gets paid immediately with no platform able to reverse or withhold the transaction.
+## What It Does
 
-the platform takes 5% per sale and uses that to cover walrus storage costs, which run $0.023 per gb per month. the economics work from the first transaction. every subsequent sale of the same dataset is nearly pure margin since the blob is already stored.
+Sellers sign in with Google zkLogin, upload a dataset, and set a USDC price. The dataset is encrypted in the browser with AES-256-GCM before it leaves the seller's device. Trainyard never receives the raw file.
 
+The encrypted dataset blob and public preview are stored on Walrus. The app stores listing metadata, the Walrus blob ID, and the encrypted-data release key separately.
 
-## why walrus
+Buyers browse listings, preview datasets, and pay in USDC on Sui. After the backend verifies the transaction through Tatum's Sui RPC endpoint, the decryption key is released and the buyer downloads the decrypted file locally.
 
-the immutability is not a feature, it is the product.
+Buyers can also return later to their private **Bought datasets** section and download previously purchased datasets again without paying twice.
 
-a dataset listed on trainyard cannot be taken down. it cannot be modified after the fact. its blob id is a permanent, content-addressed reference that anyone can verify. when a buyer purchases access, they are not trusting trainyard to keep the file around. they are trusting cryptographic guarantees that the file exists and has not changed since it was listed. a subpoena to our servers cannot remove a walrus blob. an acquisition cannot change what the data contains. this is the property that makes trainyard viable as infrastructure for the ai industry, where provenance and permanence are legal requirements, not nice-to-haves.
+## Hackathon Requirements
 
-walrus also costs $0.023 per gb per month. for context, storing a 10 gb dataset for a year costs about $2.76. the decentralized storage argument no longer requires a cost premium.
+Trainyard AI satisfies the Tatum x Walrus requirements:
 
+- **Walrus integration:** encrypted dataset payloads and public dataset previews are uploaded to Walrus mainnet.
+- **Tatum integration:** backend transaction verification and app Sui RPC proxying use Tatum's Sui mainnet RPC endpoint with a Tatum API key.
+- **Sui mainnet:** zkLogin identities, USDC payments, and payment verification target Sui mainnet.
+- **Meaningful app use case:** Walrus is not a decorative storage add-on. The product depends on content-addressed decentralized storage for dataset availability and verifiable blob IDs.
+- **Working demo flow:** seller upload, Walrus storage, marketplace listing, gasless USDC purchase, verified key release, local decryption, repeat download access.
 
-## built with
+## Why Walrus
 
-react and vite on the frontend. fastapi and supabase on the backend. walrus mainnet for encrypted blob storage at $0.023 per gb per month. sui mainnet for identity and settlement. tatum rpc nodes for sui connectivity via their free api key. groq for ai-generated dataset descriptions. aes-256-gcm encryption running entirely in the browser via the web crypto api — the backend never receives unencrypted data.
+Walrus gives Trainyard AI a storage layer that fits the product instead of fighting it.
 
+Dataset buyers need confidence that the data they paid for is the same data the seller listed. Walrus blob IDs provide content-addressed references to encrypted payloads, so listings can point to durable, verifiable data instead of opaque server files.
 
-## economics
+Trainyard stores encrypted data on Walrus and keeps access controlled through cryptographic keys. That means the blob can be publicly retrievable while the usable plaintext stays private until a buyer completes payment.
 
-storage costs $0.023 per gb per month on walrus mainnet. the platform earns 5% commission on every sale. a 1 gb dataset priced at 1 sui generates $0.05 in commission against $0.023 in storage costs on the first sale. every sale after that costs nothing to serve — the blob is already on walrus. the model is profitable from transaction one.
+## Why Tatum
 
+Tatum gives the backend a reliable Sui mainnet RPC path for payment verification.
 
-## hackathon
+After a buyer submits a USDC payment transaction, the backend queries the transaction through Tatum's Sui RPC node and verifies:
 
-built for the tatum x walrus hackathon, may–june 2026. sui mainnet. walrus mainnet. tatum rpc (free tier). real transactions, real storage, real data.
+- the transaction succeeded,
+- the buyer address matches,
+- the seller received the correct 95% amount,
+- the platform received the correct 5% commission,
+- the transaction digest has not already been used.
+
+This prevents buyers from reusing old transaction digests for another listing and makes the key-release step server-verifiable.
+
+## Core Features
+
+- Google zkLogin authentication.
+- Gasless USDC dataset purchases on Sui.
+- Browser-side AES-256-GCM file encryption and decryption.
+- Walrus mainnet upload for encrypted dataset blobs.
+- Walrus preview upload for lightweight public dataset previews.
+- Tatum-powered Sui RPC proxy and payment verification.
+- Replay protection for already-used transaction digests.
+- Seller price editing.
+- Seller address sync when zkLogin salt/address changes.
+- Private purchased dataset library for repeat downloads.
+- Profile pages, follows, dataset search, and category filtering.
+- AI-assisted listing metadata via Groq with backend fallback behavior.
+
+## Architecture
+
+Frontend:
+
+- React + Vite.
+- Sui dApp Kit and Mysten Sui SDK.
+- zkLogin account flow.
+- Web Crypto API for local encryption/decryption.
+- Walrus aggregator reads for previews and purchased files.
+
+Backend:
+
+- FastAPI.
+- Supabase for listings, profiles, keys, and payment receipts.
+- Tatum Sui RPC endpoint for transaction verification.
+- Shinami zkLogin prover integration.
+- Walrus upload service using `@mysten/walrus`.
+
+Storage and settlement:
+
+- Walrus mainnet stores encrypted blobs and previews.
+- Sui mainnet settles USDC payments.
+- Payment receipts bind purchases to the authenticated Google subject and buyer address.
+
+## Repository Structure
+
+```text
+apps/frontend        React/Vite frontend
+apps/backend         FastAPI backend
+apps/backend/routes  API routes for datasets, payments, auth, profiles, Sui RPC
+apps/backend/services Walrus, Sui, auth, and AI service logic
+apps/backend/scripts Walrus upload script
+apps/backend/migrations Supabase SQL migrations
+api                  Vercel serverless Walrus upload helper
+```
+
+## Local Setup
+
+Install frontend dependencies:
+
+```bash
+npm install
+cd apps/frontend
+npm install
+```
+
+Create backend environment:
+
+```bash
+cd apps/backend
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Copy environment files:
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env
+```
+
+Required backend variables:
+
+```text
+SUPABASE_URL=
+SUPABASE_KEY=
+TATUM_API_KEY=
+SUI_MAINNET_RPC=https://sui-mainnet.gateway.tatum.io
+SHINAMI_API_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+AUTH_SESSION_SECRET=
+PLATFORM_WALLET_ADDRESS=
+SUI_PRIVATE_KEY=
+```
+
+Required frontend variables:
+
+```text
+VITE_API_URL=/api
+VITE_SUI_RPC_URL=/api/sui-rpc
+VITE_WALRUS_AGGREGATOR=https://aggregator.walrus-mainnet.walrus.space
+VITE_PLATFORM_ADDRESS=
+VITE_USDC_COIN_TYPE=0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC
+```
+
+Apply the Supabase migrations in `apps/backend/migrations`.
+
+Run the app:
+
+```bash
+npm run dev
+```
+
+Backend runs on `http://localhost:8000` and frontend runs on `http://localhost:5173`.
+
+## Demo Flow
+
+1. Sign in with Google zkLogin.
+2. Upload a `.csv`, `.json`, `.txt`, or `.zip` dataset.
+3. Watch the browser encrypt the file locally.
+4. Store the encrypted dataset and preview on Walrus.
+5. Open the marketplace listing and inspect the Walrus-backed preview.
+6. Buy the dataset with USDC on Sui.
+7. Backend verifies the Sui transaction through Tatum RPC.
+8. The key releases, the file decrypts locally, and the download starts.
+9. Return to Profile -> Bought datasets and download the same purchased dataset again without paying twice.
+
+## Economics
+
+Trainyard takes a 5% commission on each dataset sale. Sellers receive 95% directly through the Sui USDC transaction.
+
+The product model is designed around one-time storage and repeat sales: once a dataset is stored on Walrus, additional buyers can purchase access without requiring the seller to upload the data again.
+
+## Security Notes
+
+- Raw dataset files are encrypted in the browser before upload.
+- The backend never receives plaintext dataset contents.
+- Payment verification checks buyer, seller, platform address, amount, transaction success, and digest reuse.
+- Purchased dataset access is tied to authenticated identity through `buyer_sub`, with buyer address fallback for older receipts.
+- Decryption keys are only released after verified payment or previously verified ownership.
+
+## Status
+
+This is a hackathon build running against Sui mainnet and Walrus mainnet. It demonstrates a real end-to-end marketplace flow with real storage, real USDC settlement, and automatic key release after verified payment.
