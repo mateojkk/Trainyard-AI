@@ -1,6 +1,6 @@
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey, getZkLoginSignature, genAddressSeed, decodeJwt, jwtToAddress } from "@mysten/sui/zklogin";
-import { SuiGraphQLClient } from "@mysten/sui/graphql";
+import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Transaction } from "@mysten/sui/transactions";
 import { authApi, zkproverApi, suiRpcApi } from "./api";
 import { writeJson } from "./zkLoginStorage";
@@ -14,11 +14,9 @@ const USDC_COIN_TYPE = import.meta.env.VITE_USDC_COIN_TYPE || "0xdba34672e30cb06
 // zkLogin requires salt < 2^128. Existing salts may be 256-bit hex; mask to 128 bits.
 const SALT_MASK = (1n << 128n) - 1n;
 
-// SuiGraphQLClient is required for client.core (address balance resolution used
-// by tx.balance() for gasless stablecoin transactions). SuiGrpcClient requires
-// an explicit baseUrl and its binary transport doesn't work in browsers without one.
-const GRAPHQL_URL = "https://graphql.mainnet.sui.io/graphql";
-const client = new SuiGraphQLClient({ url: GRAPHQL_URL, network: "mainnet" });
+// SuiGrpcClient hits the fullnode directly via gRPC-web, which handles gasless
+// stablecoin detection natively during simulateTransaction.
+const client = new SuiGrpcClient({ baseUrl: "https://fullnode.mainnet.sui.io:443", network: "mainnet" });
 
 export async function beginZkLogin(customReturnTo) {
   const keypair = Ed25519Keypair.generate();
@@ -72,7 +70,7 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   const commissionAmount = priceInBaseUnits * 5n / 100n;
   const sellerAmount = priceInBaseUnits - commissionAmount;
 
-  // Pre-flight balance check via GraphQL core API
+  // Pre-flight balance check via gRPC core API
   try {
     const { balance } = await client.core.getBalance({ owner: sender, coinType: USDC_COIN_TYPE });
     const available = BigInt(balance.balance ?? 0);
@@ -85,11 +83,9 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   } catch (e) { if (e.message?.includes("Insufficient USDC")) throw e; console.warn("Balance pre-check failed, proceeding:", e.message); }
 
   // Build gasless stablecoin PTB using address balance intents.
-  // Each tx.balance() call creates a Balance<T> input that the SDK resolves
-  // during build. The SDK detects this as an eligible gasless stablecoin
-  // transfer and sets gasPrice = 0, gasBudget = 0, and ValidDuring expiration.
-  // No Coin objects are created, satisfying the gasless requirement that no
-  // objects are written during the transaction.
+  // Each tx.balance() call creates a Balance<T> input that the gRPC client's
+  // simulateTransaction resolves, detects gasless eligibility, and sets
+  // gasPrice = 0, gasBudget = 0, and ValidDuring expiration automatically.
   const tx = new Transaction();
   tx.setSender(sender);
 
@@ -109,33 +105,8 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
     arguments: [commissionBalance, tx.pure.address(PLATFORM_ADDRESS)],
   });
 
-  // Resolve intents (tx.balance()) first, then manually set gas/expiration
-  // to completely bypass the SDK's simulation pipeline which can't handle
-  // zkLogin accounts with 0 SUI.
-  await tx.prepareForSerialization({ client });
-  tx.setGasPrice(0);
-  tx.setGasBudget(0);
-  tx.setGasPayment([]);
-
-  // Set ValidDuring expiration manually
-  const [chainIdRes, systemStateRes] = await Promise.all([
-    client.core.getChainIdentifier(),
-    client.core.getCurrentSystemState(),
-  ]);
-  const epoch = BigInt(systemStateRes.systemState.epoch);
-  tx.getData().expiration = {
-    $kind: "ValidDuring",
-    ValidDuring: {
-      minEpoch: String(epoch),
-      maxEpoch: String(epoch + 1n),
-      minTimestamp: null,
-      maxTimestamp: null,
-      chain: chainIdRes.chainIdentifier,
-      nonce: (Math.random() * 4294967296) >>> 0,
-    },
-  };
-
-  // Build - fully resolved, skips the gas/expiration plugin
+  // Build — the SuiGrpcClient detects gasless eligibility during
+  // simulateTransaction and sets gasPrice = 0, gasBudget = 0 automatically.
   const txBytes = await tx.build({ client });
   console.log("[zkLogin] Built transaction data:", {
     expiration: tx.getData().expiration,
