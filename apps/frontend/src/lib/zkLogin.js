@@ -89,30 +89,6 @@ export async function signAndExecuteTransaction(priceInUsdc, sellerAddress) {
   // the SDK resolves both via 0x2::balance::redeem_funds during signing.
   const tx = new Transaction();
   tx.setSender(sender);
-  tx.setGasPrice(0);
-  tx.setGasBudget(0);
-
-  // Fetch current epoch and chain identifier to configure ValidDuring expiration (required for gasless transactions)
-  const latestEpochResult = await suiRpcApi.getLatestEpoch();
-  const currentEpochStr = latestEpochResult?.result?.epoch;
-  if (currentEpochStr === undefined || currentEpochStr === null) {
-    throw new Error("Failed to retrieve current epoch for transaction expiration");
-  }
-  const currentEpoch = BigInt(currentEpochStr);
-  const chainIdResult = await client.core.getChainIdentifier();
-  const chain = chainIdResult.chainIdentifier;
-
-  tx.setExpiration({
-    $kind: "ValidDuring",
-    ValidDuring: {
-      minEpoch: String(currentEpoch),
-      maxEpoch: String(currentEpoch + 1n),
-      minTimestamp: null,
-      maxTimestamp: null,
-      chain,
-      nonce: (Math.random() * 0x100000000) >>> 0,
-    },
-  });
 
   const sellerBalance = tx.balance({ type: USDC_COIN_TYPE, balance: sellerAmount });
   const commissionBalance = tx.balance({ type: USDC_COIN_TYPE, balance: commissionAmount });
