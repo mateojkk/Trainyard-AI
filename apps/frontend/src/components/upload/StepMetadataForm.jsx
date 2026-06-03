@@ -93,7 +93,7 @@ export default function StepMetadataForm({
                 step="0.01"
                 required
                 value={metadata.price_sui}
-                onChange={(e) => setMetadata({ ...metadata, price_sui: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setMetadata({ ...metadata, price_sui: e.target.value })}
                 className="w-full bg-[#2f2f2f] border border-[#3a322f] focus:border-brand-blue rounded p-2.5 text-[#fff7ed] placeholder-[#d1d5db] focus:outline-none transition duration-150 font-mono"
               />
             </div>

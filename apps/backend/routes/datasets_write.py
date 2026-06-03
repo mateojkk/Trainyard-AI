@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Request
 from pydantic import BaseModel
 from ..database import get_db
@@ -11,6 +12,9 @@ router = APIRouter()
 
 ALLOWED_TYPES = {"zip", "csv", "json", "txt"}
 MIN_GASLESS_PRICE_USDC = 0.20
+MAX_API_UPLOAD_BYTES = int(os.getenv("MAX_API_UPLOAD_BYTES", str(4 * 1024 * 1024)))
+MAX_API_UPLOAD_LABEL = os.getenv("MAX_API_UPLOAD_LABEL", "4MB")
+MAX_LISTING_FILE_BYTES = 10 * 1024 * 1024 * 1024
 
 def _session(request):
     token = request.cookies.get(SESSION_COOKIE_NAME)
@@ -33,23 +37,22 @@ async def upload_blob(request: Request, file: UploadFile = File(...)):
     try:
         _session(request)
         content_length = request.headers.get("content-length")
-        MAX_SIZE = 10 * 1024 * 1024 * 1024  # 10 GB
-        if content_length and int(content_length) > MAX_SIZE:
-            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+        if content_length and int(content_length) > MAX_API_UPLOAD_BYTES:
+            raise HTTPException(status_code=400, detail=f"File size exceeds the {MAX_API_UPLOAD_LABEL} upload limit.")
             
         ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
         if ext not in ALLOWED_TYPES:
             raise HTTPException(status_code=400, detail=f"Unsupported file type '.{ext}'. Accepted: {', '.join(sorted(ALLOWED_TYPES))}")
             
-        if getattr(file, "size", None) is not None and file.size > MAX_SIZE:
-            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+        if getattr(file, "size", None) is not None and file.size > MAX_API_UPLOAD_BYTES:
+            raise HTTPException(status_code=400, detail=f"File size exceeds the {MAX_API_UPLOAD_LABEL} upload limit.")
             
         data = await file.read()
         if not data:
             raise HTTPException(status_code=400, detail="Empty file upload")
             
-        if len(data) > MAX_SIZE:
-            raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
+        if len(data) > MAX_API_UPLOAD_BYTES:
+            raise HTTPException(status_code=400, detail=f"File size exceeds the {MAX_API_UPLOAD_LABEL} upload limit.")
             
         logger.info(f"Received file upload '{file.filename}' of size {len(data)} bytes.")
         base_url = str(request.base_url)
@@ -120,8 +123,7 @@ async def create_listing(
         raise HTTPException(status_code=500, detail="Database not initialized")
 
     try:
-        MAX_SIZE = 10 * 1024 * 1024 * 1024  # 10 GB
-        if int(file_size_bytes) > MAX_SIZE:
+        if int(file_size_bytes) > MAX_LISTING_FILE_BYTES:
             raise HTTPException(status_code=400, detail="File size exceeds the 10GB limit.")
         if float(price_sui) < MIN_GASLESS_PRICE_USDC:
             raise HTTPException(

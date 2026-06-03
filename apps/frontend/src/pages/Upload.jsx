@@ -4,6 +4,7 @@ import { useZkLogin } from "../context/useZkLogin";
 import { datasetsApi, aiApi } from "../lib/api";
 import { generateKey, encryptFile } from "../lib/crypto";
 import { generateFingerprintAndPreview } from "../lib/fingerprint";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL, UPLOAD_LIMIT_HELP } from "../lib/uploadLimits";
 import StepChooseFile from "../components/upload/StepChooseFile";
 import StepMetadataForm from "../components/upload/StepMetadataForm";
 import StepProgressTracker from "../components/upload/StepProgressTracker";
@@ -12,6 +13,11 @@ import { ChevronRight } from "lucide-react";
 
 const ALLOWED_EXTENSIONS = ["zip", "csv", "json", "txt"];
 const MIN_GASLESS_PRICE_USDC = 0.2;
+
+const parseListingPrice = (price) => {
+  if (typeof price === "string" && price.trim() === "") return Number.NaN;
+  return Number(price);
+};
 
 export default function Upload() {
   const { account } = useZkLogin();
@@ -35,12 +41,14 @@ export default function Upload() {
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedBlob, setCopiedBlob] = useState(false);
   
-  const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10 GB
-  
   const processFile = (selectedFile) => {
     setError(null);
-    if (selectedFile.size > MAX_FILE_SIZE) {
-      setError("File size exceeds the 10GB limit.");
+    if (selectedFile.size > MAX_UPLOAD_BYTES) {
+      setError(
+        `File size exceeds the ${MAX_UPLOAD_LABEL} upload limit.${
+          UPLOAD_LIMIT_HELP ? ` ${UPLOAD_LIMIT_HELP}` : ""
+        }`
+      );
       return;
     }
     const ext = selectedFile.name.includes(".") ? selectedFile.name.split(".").pop().toLowerCase() : "";
@@ -91,7 +99,11 @@ export default function Upload() {
 
     try {
       const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "";
-      if (Number(metadata.price_sui) < MIN_GASLESS_PRICE_USDC) {
+      const listingPrice = parseListingPrice(metadata.price_sui);
+      if (!Number.isFinite(listingPrice)) {
+        throw new Error("Enter a valid USDC price.");
+      }
+      if (listingPrice < MIN_GASLESS_PRICE_USDC) {
         throw new Error(`Minimum gasless USDC price is ${MIN_GASLESS_PRICE_USDC.toFixed(2)}.`);
       }
       
@@ -110,14 +122,22 @@ export default function Upload() {
 
       updateStatus(3, "loading");
       const tagList = metadata.tags.split(",").map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0);
-      const listingResult = await datasetsApi.createListing({ title: metadata.title, description: metadata.description, category: metadata.category, price_sui: metadata.price_sui, seller_address: account.address, iv: iv, blob_id: uploadBlobRes.blob_id, preview_blob_id: uploadPreviewRes.blob_id, file_name: file.name, file_size_bytes: file.size, file_type: ext, tags: JSON.stringify(tagList), key_base64: keyBase64 });
+      const listingResult = await datasetsApi.createListing({ title: metadata.title, description: metadata.description, category: metadata.category, price_sui: listingPrice, seller_address: account.address, iv: iv, blob_id: uploadBlobRes.blob_id, preview_blob_id: uploadPreviewRes.blob_id, file_name: file.name, file_size_bytes: file.size, file_type: ext, tags: JSON.stringify(tagList), key_base64: keyBase64 });
       updateStatus(3, "done");
       
       listingResult.key_base64 = keyBase64;
       setResult(listingResult);
       setStep(3);
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Failed to complete upload pipeline.");
+      const detail = err.response?.data?.detail;
+      const status = err.response?.status;
+      setError(
+        status === 413
+          ? `Upload rejected because the request body is too large for this deployment. ${
+              UPLOAD_LIMIT_HELP || `Please choose a file under ${MAX_UPLOAD_LABEL}.`
+            }`
+          : detail || err.message || "Failed to complete upload pipeline."
+      );
       setUploadSteps((prev) => prev.map((s) => ({ ...s, status: "idle" })));
       setStep(1);
     }
@@ -145,7 +165,7 @@ export default function Upload() {
           <span className={step === 2 ? "text-brand-blue font-bold" : "text-[#d1d5db]"}>03. Encrypt & Upload</span>
         </div>
       )}
-      {step === 0 && <StepChooseFile file={file} error={error} handleDragOver={(e) => e.preventDefault()} handleDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]); }} triggerFileSelect={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={(e) => { if (e.target.files?.[0]) processFile(e.target.files[0]); }} handleContinueToForm={handleContinueToForm} />}
+      {step === 0 && <StepChooseFile file={file} error={error} maxUploadLabel={MAX_UPLOAD_LABEL} handleDragOver={(e) => e.preventDefault()} handleDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]); }} triggerFileSelect={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={(e) => { if (e.target.files?.[0]) processFile(e.target.files[0]); }} handleContinueToForm={handleContinueToForm} />}
       {step === 1 && <StepMetadataForm file={file} metadata={metadata} setMetadata={setMetadata} loadingAi={loadingAi} error={error} account={account} handleUploadAndStore={handleUploadAndStore} setStep={setStep} />}
       {step === 2 && <StepProgressTracker uploadSteps={uploadSteps} />}
       {step === 3 && <StepSuccess result={result} copiedKey={copiedKey} copiedBlob={copiedBlob} handleCopy={handleCopy} navigate={navigate} />}
